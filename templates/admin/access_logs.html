@@ -1,0 +1,400 @@
+{% extends "admin/base.html" %}
+
+{% block title %}授权码访问管理{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1><i class="fas fa-history me-3"></i>授权码访问管理</h1>
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{{ url_for('index') }}">仪表盘</a></li>
+            <li class="breadcrumb-item active">授权码访问管理</li>
+        </ol>
+    </nav>
+</div>
+
+<!-- 筛选和搜索 -->
+<div class="row mb-4">
+    <div class="col-md-6">
+        <div class="input-group">
+            <select class="form-select" id="statusFilter">
+                <option value="">所有状态</option>
+                <option value="1">在线</option>
+                <option value="0">已离线</option>
+            </select>
+            <select class="form-select" id="codeFilter">
+                <option value="">所有授权码</option>
+                {% for log in access_logs %}
+                    <option value="{{ log.access_code }}">{{ log.access_code }}</option>
+                {% endfor %}
+            </select>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="input-group">
+            <input type="text" class="form-control" id="searchInput" placeholder="搜索IP地址、地点、浏览器...">
+            <button class="btn btn-outline-secondary" type="button">
+                <i class="fas fa-search"></i>
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- 访问记录列表 -->
+<div class="card">
+    <div class="card-header">
+        <h5><i class="fas fa-list me-2"></i>访问记录列表 ({{ access_logs|length }} 条)</h5>
+    </div>
+    <div class="card-body">
+        {% if access_logs %}
+        <div class="table-responsive">
+            <table class="table table-hover">
+                <thead>
+                    <tr>
+                        <th>会话编号</th>
+                        <th>授权码</th>
+                        <th>IP地址</th>
+                        <th>登录地点</th>
+                        <th>浏览器</th>
+                        <th>操作系统</th>
+                        <th>登录时间</th>
+                        <th>最后活动</th>
+                        <th>状态</th>
+                        <th>操作</th>
+                    </tr>
+                </thead>
+                <tbody id="logsTable">
+                    {% for log in access_logs %}
+                    <tr class="log-item" data-code="{{ log.access_code|lower }}" data-status="{{ log.is_active }}" data-search="{{ (log.ip_address + ' ' + log.location + ' ' + log.browser + ' ' + log.operating_system)|lower }}">
+                        <td>
+                            <code class="bg-light px-2 py-1 rounded">{{ log.session_id[:8] }}...</code>
+                            <button class="btn btn-sm btn-outline-secondary ms-1" onclick="copyToClipboard('{{ log.session_id }}')">
+                                <i class="fas fa-copy"></i>
+                            </button>
+                        </td>
+                        <td>
+                            <span class="badge bg-primary">{{ log.access_code }}</span>
+                            {% if log.code_description %}
+                                <small class="text-muted d-block">{{ log.code_description }}</small>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <span class="text-monospace">{{ log.ip_address or '未知' }}</span>
+                        </td>
+                        <td>
+                            <i class="fas fa-map-marker-alt text-muted me-1"></i>
+                            {{ log.location or '未知地区' }}
+                        </td>
+                        <td>
+                            <i class="fas fa-globe text-muted me-1"></i>
+                            {{ log.browser or '未知浏览器' }}
+                        </td>
+                        <td>
+                            <i class="fas fa-desktop text-muted me-1"></i>
+                            {{ log.operating_system or '未知系统' }}
+                        </td>
+                        <td>
+                            {% if log.login_time %}
+                                {% if log.login_time is string %}
+                                    {{ log.login_time[:16] }}
+                                {% else %}
+                                    {{ log.login_time.strftime('%Y-%m-%d %H:%M') }}
+                                {% endif %}
+                            {% else %}
+                                未知
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if log.last_activity %}
+                                {% if log.last_activity is string %}
+                                    {{ log.last_activity[:16] }}
+                                {% else %}
+                                    {{ log.last_activity.strftime('%Y-%m-%d %H:%M') }}
+                                {% endif %}
+                            {% else %}
+                                未知
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if log.is_active %}
+                                <span class="badge bg-success">
+                                    <i class="fas fa-circle me-1"></i>在线
+                                </span>
+                            {% else %}
+                                <span class="badge bg-secondary">
+                                    <i class="fas fa-circle me-1"></i>已离线
+                                </span>
+                                {% if log.logout_time %}
+                                    <small class="text-muted d-block">
+                                        {% if log.logout_time is string %}
+                                            {{ log.logout_time[:16] }}
+                                        {% else %}
+                                            {{ log.logout_time.strftime('%Y-%m-%d %H:%M') }}
+                                        {% endif %}
+                                    </small>
+                                {% endif %}
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if log.is_active %}
+                                <button class="btn btn-sm btn-outline-danger" onclick="forceLogout({{ log.id }})">
+                                    <i class="fas fa-sign-out-alt me-1"></i>强退
+                                </button>
+                            {% else %}
+                                <span class="text-muted">已离线</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="text-center py-5">
+            <i class="fas fa-history fa-3x text-muted mb-3"></i>
+            <h5 class="text-muted">暂无访问记录</h5>
+            <p class="text-muted">当用户通过授权码登录时，访问记录将显示在这里</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- 统计信息卡片 -->
+<div class="row mt-4">
+    <div class="col-md-3">
+        <div class="card bg-primary text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h6 class="card-title">总访问次数</h6>
+                        <h3>{{ access_logs|length }}</h3>
+                    </div>
+                    <div class="align-self-center">
+                        <i class="fas fa-chart-line fa-2x opacity-75"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card bg-success text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h6 class="card-title">在线用户</h6>
+                        <h3 id="onlineCount">0</h3>
+                    </div>
+                    <div class="align-self-center">
+                        <i class="fas fa-users fa-2x opacity-75"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card bg-info text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h6 class="card-title">使用的授权码</h6>
+                        <h3 id="uniqueCodesCount">0</h3>
+                    </div>
+                    <div class="align-self-center">
+                        <i class="fas fa-key fa-2x opacity-75"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card bg-warning text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h6 class="card-title">今日访问</h6>
+                        <h3 id="todayCount">0</h3>
+                    </div>
+                    <div class="align-self-center">
+                        <i class="fas fa-calendar-day fa-2x opacity-75"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+.page-header {
+    margin-bottom: 2rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid #eee;
+}
+
+.table th {
+    background-color: #f8f9fa;
+    border-top: none;
+    font-weight: 600;
+}
+
+.table-hover tbody tr:hover {
+    background-color: rgba(0,123,255,0.05);
+}
+
+.log-item {
+    transition: all 0.2s ease;
+}
+
+.badge {
+    font-size: 0.75rem;
+}
+
+code {
+    font-family: 'Courier New', monospace;
+    font-size: 0.9rem;
+}
+
+.text-monospace {
+    font-family: 'Courier New', monospace;
+}
+
+.card {
+    box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+    border: 1px solid rgba(0, 0, 0, 0.125);
+}
+
+.opacity-75 {
+    opacity: 0.75;
+}
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// 搜索和筛选功能
+document.getElementById('searchInput').addEventListener('input', filterLogs);
+document.getElementById('statusFilter').addEventListener('change', filterLogs);
+document.getElementById('codeFilter').addEventListener('change', filterLogs);
+
+function filterLogs() {
+    const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+    const statusFilter = document.getElementById('statusFilter').value;
+    const codeFilter = document.getElementById('codeFilter').value.toLowerCase();
+    const logItems = document.querySelectorAll('.log-item');
+    
+    logItems.forEach(item => {
+        const searchData = item.getAttribute('data-search');
+        const status = item.getAttribute('data-status');
+        const code = item.getAttribute('data-code');
+        
+        const matchesSearch = searchData.includes(searchTerm);
+        const matchesStatus = !statusFilter || status === statusFilter;
+        const matchesCode = !codeFilter || code === codeFilter;
+        
+        if (matchesSearch && matchesStatus && matchesCode) {
+            item.style.display = 'table-row';
+        } else {
+            item.style.display = 'none';
+        }
+    });
+}
+
+// 复制到剪贴板
+function copyToClipboard(text) {
+    navigator.clipboard.writeText(text).then(() => {
+        showAlert('success', '会话ID已复制到剪贴板');
+    }).catch(() => {
+        showAlert('warning', '复制失败，请手动复制');
+    });
+}
+
+// 强制登出
+function forceLogout(logId) {
+    if (confirm('确定要强制登出该用户吗？用户将被立即踢出系统。')) {
+        fetch('{{ url_for("force_logout_access") }}', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({id: logId})
+        })
+        .then(response => response.json())
+        .then(result => {
+            if (result.success) {
+                showAlert('success', result.message);
+                setTimeout(() => location.reload(), 1500);
+            } else {
+                showAlert('danger', result.message);
+            }
+        })
+        .catch(error => {
+            showAlert('danger', '操作失败：' + error.message);
+        });
+    }
+}
+
+
+// 显示提示信息
+function showAlert(type, message) {
+    const alertDiv = document.createElement('div');
+    alertDiv.className = `alert alert-${type} alert-dismissible fade show position-fixed`;
+    alertDiv.style.cssText = 'top: 20px; right: 20px; z-index: 9999; min-width: 300px;';
+    alertDiv.innerHTML = `
+        ${message}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    `;
+    
+    document.body.appendChild(alertDiv);
+    
+    setTimeout(() => {
+        if (alertDiv.parentNode) {
+            alertDiv.parentNode.removeChild(alertDiv);
+        }
+    }, 5000);
+}
+
+// 计算统计数据
+function calculateStats() {
+    const logItems = document.querySelectorAll('.log-item');
+    const today = new Date().toISOString().split('T')[0];
+    let todayCount = 0;
+    let onlineCount = 0;
+    const uniqueCodes = new Set();
+    
+    logItems.forEach(item => {
+        // 计算今日访问量
+        const loginTimeCell = item.cells[6];
+        if (loginTimeCell && loginTimeCell.textContent.includes(today)) {
+            todayCount++;
+        }
+        
+        // 计算在线用户数
+        const status = item.getAttribute('data-status');
+        if (status === '1') {
+            onlineCount++;
+        }
+        
+        // 收集唯一授权码
+        const code = item.getAttribute('data-code');
+        if (code) {
+            uniqueCodes.add(code);
+        }
+    });
+    
+    document.getElementById('todayCount').textContent = todayCount;
+    document.getElementById('onlineCount').textContent = onlineCount;
+    document.getElementById('uniqueCodesCount').textContent = uniqueCodes.size;
+}
+
+// 页面加载完成后执行
+document.addEventListener('DOMContentLoaded', function() {
+    calculateStats();
+    
+    // 每30秒刷新一次页面以更新在线状态
+    setInterval(() => {
+        location.reload();
+    }, 30000);
+});
+</script>
+{% endblock %}
