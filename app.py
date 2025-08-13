@@ -11,7 +11,15 @@ from frontend.api import create_api_blueprint
 from backend.auth import init_auth
 
 app = Flask(__name__)
-app.secret_key = 'your-secret-key-change-in-production'
+app.secret_key = 'frontend-secret-key-change-in-production'
+
+# 配置session以避免与后台管理冲突
+app.config['SESSION_COOKIE_NAME'] = 'frontend_session'
+app.config['SESSION_COOKIE_PATH'] = '/'
+app.config['SESSION_COOKIE_DOMAIN'] = None
+app.config['SESSION_COOKIE_SECURE'] = False
+app.config['SESSION_COOKIE_HTTPONLY'] = True
+app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
 
 # 配置上传文件夹
 UPLOAD_FOLDER = 'uploads'

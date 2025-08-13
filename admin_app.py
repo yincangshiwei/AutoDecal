@@ -14,7 +14,15 @@ from backend.models import Pattern, Product, ProductCategory, AccessCode, ThemeT
 
 # 创建独立的Flask应用
 app = Flask(__name__)
-app.secret_key = 'admin-secret-key-change-in-production'
+app.secret_key = 'admin-backend-secret-key-change-in-production'
+
+# 配置session以避免与前台冲突
+app.config['SESSION_COOKIE_NAME'] = 'admin_session'
+app.config['SESSION_COOKIE_PATH'] = '/'
+app.config['SESSION_COOKIE_DOMAIN'] = None
+app.config['SESSION_COOKIE_SECURE'] = False
+app.config['SESSION_COOKIE_HTTPONLY'] = True
+app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
 
 # 配置上传文件夹
 UPLOAD_FOLDER = 'uploads'
