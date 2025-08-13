@@ -1,0 +1,69 @@
+/* 复活节主题样式 */
+body {
+    background: linear-gradient(135deg, #e6f3ff 0%, #fff0f5 50%, #f0fff0 100%);
+    background-image: 
+        radial-gradient(circle at 30% 70%, rgba(255, 182, 193, 0.2) 0%, transparent 50%),
+        radial-gradient(circle at 70% 30%, rgba(173, 216, 230, 0.2) 0%, transparent 50%),
+        radial-gradient(circle at 50% 50%, rgba(144, 238, 144, 0.1) 0%, transparent 60%);
+    color: #8b4513;
+}
+
+.editor-container {
+    background: rgba(255, 255, 255, 0.8);
+    border: 2px solid #ff69b4;
+    box-shadow: 0 0 30px rgba(255, 105, 180, 0.3);
+}
+
+.canvas-container {
+    border: 3px solid #32cd32;
+    box-shadow: 0 0 20px rgba(50, 205, 50, 0.4);
+    background: rgba(255, 255, 255, 0.95);
+}
+
+.control-panel {
+    background: linear-gradient(to right, rgba(255, 182, 193, 0.3), rgba(173, 216, 230, 0.3));
+    border: 1px solid #ff69b4;
+    border-radius: 15px;
+}
+
+.pattern-list, .product-list {
+    background: rgba(255, 182, 193, 0.2);
+    border: 1px solid #ff69b4;
+}
+
+.pattern-item, .product-item {
+    background: rgba(173, 216, 230, 0.3);
+    border: 1px solid #32cd32;
+}
+
+.pattern-item:hover, .product-item:hover {
+    background: rgba(255, 105, 180, 0.3);
+    box-shadow: 0 0 15px rgba(50, 205, 50, 0.5);
+}
+
+.pattern-item.active, .product-item.active {
+    border: 2px solid #ff69b4;
+    box-shadow: 0 0 20px rgba(255, 105, 180, 0.6);
+}
+
+.btn-primary {
+    background: linear-gradient(135deg, #ff69b4 0%, #ff1493 100%);
+    border: 2px solid #32cd32;
+    color: #fff;
+}
+
+.btn-primary:hover {
+    background: linear-gradient(135deg, #ff1493 0%, #ff69b4 100%);
+    box-shadow: 0 0 15px rgba(50, 205, 50, 0.5);
+}
+
+.slider::-webkit-slider-thumb {
+    background: #ff69b4;
+    border: 2px solid #32cd32;
+}
+
+.category-select, .blend-mode-select {
+    background: rgba(255, 255, 255, 0.8);
+    border: 1px solid #ff69b4;
+    color: #8b4513;
+}

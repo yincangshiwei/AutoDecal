@@ -1,0 +1,360 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>授权码验证 - 产品印花设计平台</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Microsoft YaHei', Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        body::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><defs><pattern id="grain" width="100" height="100" patternUnits="userSpaceOnUse"><circle cx="25" cy="25" r="1" fill="rgba(255,255,255,0.1)"/><circle cx="75" cy="75" r="1" fill="rgba(255,255,255,0.1)"/><circle cx="50" cy="10" r="0.5" fill="rgba(255,255,255,0.05)"/></pattern></defs><rect width="100" height="100" fill="url(%23grain)"/></svg>');
+            opacity: 0.3;
+        }
+        
+        .login-container {
+            position: relative;
+            z-index: 1;
+            width: 100%;
+            max-width: 450px;
+            padding: 20px;
+        }
+        
+        .login-card {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(20px);
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            animation: slideUp 0.6s ease-out;
+        }
+        
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .login-header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        
+        .logo {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+        
+        .logo i {
+            font-size: 2.5rem;
+            color: #1976d2;
+            background: linear-gradient(45deg, #1976d2, #42a5f5);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        
+        .logo h1 {
+            font-size: 1.8rem;
+            font-weight: 700;
+            color: #333;
+            margin: 0;
+        }
+        
+        .subtitle {
+            color: #666;
+            font-size: 1rem;
+            font-weight: 400;
+        }
+        
+        .login-form {
+            margin-bottom: 20px;
+        }
+        
+        .input-group {
+            margin-bottom: 25px;
+        }
+        
+        .input-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+            color: #333;
+            font-size: 0.9rem;
+        }
+        
+        .input-wrapper {
+            position: relative;
+        }
+        
+        .input-wrapper i {
+            position: absolute;
+            left: 15px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #999;
+            font-size: 1.1rem;
+        }
+        
+        .input-wrapper input {
+            width: 100%;
+            padding: 15px 15px 15px 45px;
+            border: 2px solid #e1e5e9;
+            border-radius: 12px;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+            background: #fff;
+        }
+        
+        .input-wrapper input:focus {
+            outline: none;
+            border-color: #1976d2;
+            box-shadow: 0 0 0 3px rgba(25, 118, 210, 0.1);
+        }
+        
+        .login-btn {
+            width: 100%;
+            padding: 15px;
+            background: linear-gradient(45deg, #1976d2, #42a5f5);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+        
+        .login-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(25, 118, 210, 0.3);
+        }
+        
+        .login-btn:active {
+            transform: translateY(0);
+        }
+        
+        .login-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .error-message {
+            background: #ffebee;
+            color: #c62828;
+            padding: 12px;
+            border-radius: 8px;
+            margin-top: 15px;
+            border-left: 4px solid #c62828;
+            font-size: 0.9rem;
+            display: none;
+        }
+        
+        .success-message {
+            background: #e8f5e8;
+            color: #2e7d32;
+            padding: 12px;
+            border-radius: 8px;
+            margin-top: 15px;
+            border-left: 4px solid #2e7d32;
+            font-size: 0.9rem;
+            display: none;
+        }
+        
+        .login-footer {
+            text-align: center;
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 1px solid #eee;
+        }
+        
+        .login-footer p {
+            color: #999;
+            font-size: 0.85rem;
+        }
+        
+        .back-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            color: #1976d2;
+            text-decoration: none;
+            font-size: 0.9rem;
+            margin-top: 15px;
+            transition: color 0.3s ease;
+        }
+        
+        .back-link:hover {
+            color: #1565c0;
+        }
+        
+        .loading {
+            display: none;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+        
+        .loading i {
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        @media (max-width: 768px) {
+            .login-container {
+                padding: 15px;
+            }
+            
+            .login-card {
+                padding: 30px 25px;
+            }
+            
+            .logo h1 {
+                font-size: 1.5rem;
+            }
+        }
+    </style>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body>
+    <div class="login-container">
+        <div class="login-card">
+            <div class="login-header">
+                <div class="logo">
+                    <i class="fas fa-key"></i>
+                    <h1>授权验证</h1>
+                </div>
+                <p class="subtitle">请输入授权码以访问印花设计平台</p>
+            </div>
+            
+            <form id="access-form" class="login-form">
+                <input type="hidden" name="redirect_to" value="{{ redirect_to }}">
+                
+                <div class="input-group">
+                    <label for="access-code">授权码</label>
+                    <div class="input-wrapper">
+                        <i class="fas fa-lock"></i>
+                        <input type="text" id="access-code" name="access_code" 
+                               placeholder="请输入授权码" required autocomplete="off">
+                    </div>
+                </div>
+                
+                <button type="submit" class="login-btn" id="submit-btn">
+                    <span class="btn-text">
+                        <i class="fas fa-sign-in-alt"></i>
+                        验证授权码
+                    </span>
+                    <span class="loading">
+                        <i class="fas fa-spinner"></i>
+                        验证中...
+                    </span>
+                </button>
+            </form>
+            
+            <div id="error-message" class="error-message"></div>
+            <div id="success-message" class="success-message"></div>
+            
+            <div class="login-footer">
+                <a href="/" class="back-link">
+                    <i class="fas fa-arrow-left"></i>
+                    返回首页
+                </a>
+                <p>展会专用设计平台 | 需要授权码访问</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.getElementById('access-form').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const submitBtn = document.getElementById('submit-btn');
+            const btnText = submitBtn.querySelector('.btn-text');
+            const loading = submitBtn.querySelector('.loading');
+            const errorMsg = document.getElementById('error-message');
+            const successMsg = document.getElementById('success-message');
+            
+            // 显示加载状态
+            submitBtn.disabled = true;
+            btnText.style.display = 'none';
+            loading.style.display = 'flex';
+            errorMsg.style.display = 'none';
+            successMsg.style.display = 'none';
+            
+            try {
+                const formData = new FormData(this);
+                const response = await fetch('/verify-access-code', {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    successMsg.textContent = '授权码验证成功，正在跳转...';
+                    successMsg.style.display = 'block';
+                    
+                    // 延迟跳转，让用户看到成功消息
+                    setTimeout(() => {
+                        window.location.href = result.redirect_url;
+                    }, 1000);
+                } else {
+                    errorMsg.textContent = result.message || '验证失败，请重试';
+                    errorMsg.style.display = 'block';
+                }
+            } catch (error) {
+                console.error('验证请求失败:', error);
+                errorMsg.textContent = '网络错误，请检查连接后重试';
+                errorMsg.style.display = 'block';
+            } finally {
+                // 恢复按钮状态
+                submitBtn.disabled = false;
+                btnText.style.display = 'flex';
+                loading.style.display = 'none';
+            }
+        });
+        
+        // 自动聚焦到输入框
+        document.getElementById('access-code').focus();
+    </script>
+</body>
+</html>

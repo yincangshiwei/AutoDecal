@@ -1,0 +1,373 @@
+{% extends "admin/base.html" %}
+
+{% block title %}系统设置{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- 页面标题 -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="h3 mb-0">系统设置</h1>
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="{{ url_for('index') }}">首页</a></li>
+                    <li class="breadcrumb-item active">系统设置</li>
+                </ol>
+            </nav>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- 基本设置 -->
+        <div class="col-md-6 mb-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-cog me-2"></i>基本设置
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <form id="basicSettingsForm">
+                        <div class="mb-3">
+                            <label for="systemName" class="form-label">系统名称</label>
+                            <input type="text" class="form-control" id="systemName" value="产品印花平台">
+                        </div>
+                        <div class="mb-3">
+                            <label for="systemDescription" class="form-label">系统描述</label>
+                            <textarea class="form-control" id="systemDescription" rows="3">专业的产品印花设计平台，适用于展会展台展示</textarea>
+                        </div>
+                        <div class="mb-3">
+                            <label for="maxFileSize" class="form-label">最大文件上传大小 (MB)</label>
+                            <input type="number" class="form-control" id="maxFileSize" value="10" min="1" max="100">
+                        </div>
+                        <div class="mb-3">
+                            <label for="allowedExtensions" class="form-label">允许的文件扩展名</label>
+                            <input type="text" class="form-control" id="allowedExtensions" value="jpg,jpeg,png,gif,webp">
+                            <div class="form-text">用逗号分隔多个扩展名</div>
+                        </div>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save me-1"></i>保存设置
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- 安全设置 -->
+        <div class="col-md-6 mb-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-shield-alt me-2"></i>安全设置
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <form id="securitySettingsForm">
+                        <div class="mb-3">
+                            <label for="sessionTimeout" class="form-label">会话超时时间 (分钟)</label>
+                            <input type="number" class="form-control" id="sessionTimeout" value="30" min="5" max="1440">
+                        </div>
+                        <div class="mb-3">
+                            <label for="maxLoginAttempts" class="form-label">最大登录尝试次数</label>
+                            <input type="number" class="form-control" id="maxLoginAttempts" value="5" min="3" max="10">
+                        </div>
+                        <div class="mb-3">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="enableTwoFactor">
+                                <label class="form-check-label" for="enableTwoFactor">
+                                    启用双因素认证
+                                </label>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="enableAuditLog" checked>
+                                <label class="form-check-label" for="enableAuditLog">
+                                    启用操作日志
+                                </label>
+                            </div>
+                        </div>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save me-1"></i>保存设置
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- 显示设置 -->
+        <div class="col-md-6 mb-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-palette me-2"></i>显示设置
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <form id="displaySettingsForm">
+                        <div class="mb-3">
+                            <label for="itemsPerPage" class="form-label">每页显示条数</label>
+                            <select class="form-select" id="itemsPerPage">
+                                <option value="10">10</option>
+                                <option value="20" selected>20</option>
+                                <option value="50">50</option>
+                                <option value="100">100</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label for="defaultTheme" class="form-label">默认主题</label>
+                            <select class="form-select" id="defaultTheme">
+                                <option value="default" selected>默认主题</option>
+                                <option value="christmas">圣诞主题</option>
+                                <option value="easter">复活节主题</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="enableAnimations" checked>
+                                <label class="form-check-label" for="enableAnimations">
+                                    启用动画效果
+                                </label>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="enableDarkMode">
+                                <label class="form-check-label" for="enableDarkMode">
+                                    启用深色模式
+                                </label>
+                            </div>
+                        </div>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save me-1"></i>保存设置
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- 系统信息 -->
+        <div class="col-md-6 mb-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-info-circle me-2"></i>系统信息
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-sm-6">
+                            <strong>系统版本:</strong>
+                        </div>
+                        <div class="col-sm-6">
+                            v1.0.0
+                        </div>
+                    </div>
+                    <hr>
+                    <div class="row">
+                        <div class="col-sm-6">
+                            <strong>Python版本:</strong>
+                        </div>
+                        <div class="col-sm-6">
+                            3.x
+                        </div>
+                    </div>
+                    <hr>
+                    <div class="row">
+                        <div class="col-sm-6">
+                            <strong>Flask版本:</strong>
+                        </div>
+                        <div class="col-sm-6">
+                            2.x
+                        </div>
+                    </div>
+                    <hr>
+                    <div class="row">
+                        <div class="col-sm-6">
+                            <strong>数据库:</strong>
+                        </div>
+                        <div class="col-sm-6">
+                            SQLite
+                        </div>
+                    </div>
+                    <hr>
+                    <div class="row">
+                        <div class="col-sm-6">
+                            <strong>启动时间:</strong>
+                        </div>
+                        <div class="col-sm-6">
+                            <span id="startTime">{{ moment().format('YYYY-MM-DD HH:mm:ss') }}</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 数据库管理 -->
+    <div class="row">
+        <div class="col-12 mb-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-database me-2"></i>数据库管理
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-3 mb-3">
+                            <div class="text-center">
+                                <button class="btn btn-info btn-lg w-100" onclick="backupDatabase()">
+                                    <i class="fas fa-download d-block mb-2" style="font-size: 2rem;"></i>
+                                    备份数据库
+                                </button>
+                            </div>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <div class="text-center">
+                                <button class="btn btn-warning btn-lg w-100" onclick="restoreDatabase()">
+                                    <i class="fas fa-upload d-block mb-2" style="font-size: 2rem;"></i>
+                                    恢复数据库
+                                </button>
+                            </div>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <div class="text-center">
+                                <button class="btn btn-secondary btn-lg w-100" onclick="optimizeDatabase()">
+                                    <i class="fas fa-tools d-block mb-2" style="font-size: 2rem;"></i>
+                                    优化数据库
+                                </button>
+                            </div>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <div class="text-center">
+                                <button class="btn btn-danger btn-lg w-100" onclick="clearCache()">
+                                    <i class="fas fa-trash d-block mb-2" style="font-size: 2rem;"></i>
+                                    清理缓存
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// 基本设置表单提交
+document.getElementById('basicSettingsForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    
+    const formData = new FormData(this);
+    const settings = {
+        systemName: document.getElementById('systemName').value,
+        systemDescription: document.getElementById('systemDescription').value,
+        maxFileSize: document.getElementById('maxFileSize').value,
+        allowedExtensions: document.getElementById('allowedExtensions').value
+    };
+    
+    // 这里可以添加保存设置的AJAX请求
+    showAlert('基本设置已保存', 'success');
+});
+
+// 安全设置表单提交
+document.getElementById('securitySettingsForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    
+    const settings = {
+        sessionTimeout: document.getElementById('sessionTimeout').value,
+        maxLoginAttempts: document.getElementById('maxLoginAttempts').value,
+        enableTwoFactor: document.getElementById('enableTwoFactor').checked,
+        enableAuditLog: document.getElementById('enableAuditLog').checked
+    };
+    
+    // 这里可以添加保存设置的AJAX请求
+    showAlert('安全设置已保存', 'success');
+});
+
+// 显示设置表单提交
+document.getElementById('displaySettingsForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    
+    const settings = {
+        itemsPerPage: document.getElementById('itemsPerPage').value,
+        defaultTheme: document.getElementById('defaultTheme').value,
+        enableAnimations: document.getElementById('enableAnimations').checked,
+        enableDarkMode: document.getElementById('enableDarkMode').checked
+    };
+    
+    // 这里可以添加保存设置的AJAX请求
+    showAlert('显示设置已保存', 'success');
+});
+
+// 数据库管理功能
+function backupDatabase() {
+    if (confirm('确定要备份数据库吗？')) {
+        showAlert('数据库备份已开始，请稍候...', 'info');
+        // 这里可以添加备份数据库的AJAX请求
+        setTimeout(() => {
+            showAlert('数据库备份完成', 'success');
+        }, 2000);
+    }
+}
+
+function restoreDatabase() {
+    if (confirm('确定要恢复数据库吗？此操作将覆盖当前数据！')) {
+        const input = document.createElement('input');
+        input.type = 'file';
+        input.accept = '.db,.sql';
+        input.onchange = function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                showAlert('数据库恢复已开始，请稍候...', 'info');
+                // 这里可以添加恢复数据库的AJAX请求
+                setTimeout(() => {
+                    showAlert('数据库恢复完成', 'success');
+                }, 3000);
+            }
+        };
+        input.click();
+    }
+}
+
+function optimizeDatabase() {
+    if (confirm('确定要优化数据库吗？')) {
+        showAlert('数据库优化已开始，请稍候...', 'info');
+        // 这里可以添加优化数据库的AJAX请求
+        setTimeout(() => {
+            showAlert('数据库优化完成', 'success');
+        }, 1500);
+    }
+}
+
+function clearCache() {
+    if (confirm('确定要清理缓存吗？')) {
+        showAlert('缓存清理已开始，请稍候...', 'info');
+        // 这里可以添加清理缓存的AJAX请求
+        setTimeout(() => {
+            showAlert('缓存清理完成', 'success');
+        }, 1000);
+    }
+}
+
+// 显示提示信息
+function showAlert(message, type = 'info') {
+    const alertDiv = document.createElement('div');
+    alertDiv.className = `alert alert-${type} alert-dismissible fade show position-fixed`;
+    alertDiv.style.cssText = 'top: 20px; right: 20px; z-index: 9999; min-width: 300px;';
+    alertDiv.innerHTML = `
+        ${message}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    `;
+    document.body.appendChild(alertDiv);
+    
+    // 3秒后自动消失
+    setTimeout(() => {
+        if (alertDiv.parentNode) {
+            alertDiv.remove();
+        }
+    }, 3000);
+}
+</script>
+{% endblock %}

@@ -1,0 +1,530 @@
+{% extends "admin/base.html" %}
+
+{% block title %}产品管理{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1><i class="fas fa-box me-3"></i>产品管理</h1>
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{{ url_for('index') }}">仪表盘</a></li>
+            <li class="breadcrumb-item active">产品管理</li>
+        </ol>
+    </nav>
+</div>
+
+<!-- 操作按钮 -->
+<div class="row mb-4">
+    <div class="col-md-6">
+        <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addProductModal">
+            <i class="fas fa-plus me-2"></i>添加产品
+        </button>
+        <button type="button" class="btn btn-danger ms-2" onclick="clearAllProducts()">
+            <i class="fas fa-trash me-2"></i>清空所有产品
+        </button>
+    </div>
+    <div class="col-md-6">
+        <div class="input-group">
+            <select class="form-select" id="categoryFilter">
+                <option value="">所有分类</option>
+                {% for category in categories %}
+                <option value="{{ category.id }}">{{ category.name }}</option>
+                {% endfor %}
+            </select>
+            <input type="text" class="form-control" id="searchInput" placeholder="搜索产品名称...">
+            <button class="btn btn-outline-secondary" type="button">
+                <i class="fas fa-search"></i>
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- 产品列表 -->
+<div class="card">
+    <div class="card-header">
+        <h5><i class="fas fa-list me-2"></i>产品列表 ({{ products|length }} 个)</h5>
+    </div>
+    <div class="card-body">
+        {% if products %}
+        <div class="row" id="productsGrid">
+            {% for product in products %}
+            <div class="col-lg-2 col-md-3 col-sm-4 col-6 mb-4 product-item" data-name="{{ (product.name if product.name else product.title if product.title else '')|lower }}" data-category="{{ product.category_id }}">
+                <div class="card product-card">
+                    <div class="product-image-container">
+                        {% set image_file = product.image_path if product.image_path else (product.product_image if product.product_image else 'no-image.png') %}
+                        <img src="{{ url_for('uploaded_file', filename='products/' ~ image_file) }}" 
+                             class="card-img-top product-image" alt="{{ product.title if product.title else '产品' }}"
+                             onerror="this.src='{{ url_for('static', filename='images/no-image.png') }}'">
+                        <div class="product-overlay">
+                            <button class="btn btn-sm btn-primary" onclick="editProduct({{ product.id }});">
+                                <i class="fas fa-edit"></i>
+                            </button>
+                            <button class="btn btn-sm btn-danger" onclick="deleteProduct({{ product.id }})">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                            <button class="btn btn-sm btn-info" onclick="viewDepthMap({{ product.id }})">
+                                <i class="fas fa-layer-group"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <h6 class="card-title">{{ product.title if product.title else '未命名产品' }}</h6>
+                        <div class="product-info">
+                            <small class="text-muted">
+                                <i class="fas fa-tag me-1"></i>{{ product.category_name if product.category_name else '未分类' }}
+                            </small>
+                            <br>
+                            <small class="text-muted">
+                                {% set width = product.width if product.width else (product.image_width if product.image_width else 0) %}
+                                {% set height = product.height if product.height else (product.image_height if product.image_height else 0) %}
+                                <i class="fas fa-ruler-combined me-1"></i>{{ width }}×{{ height }}
+                            </small>
+                            <br>
+                            <small class="text-muted">
+                                <i class="fas fa-clock me-1"></i>{{ product.upload_time[:10] if product.upload_time else '未知' }}
+                            </small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="text-center py-5">
+            <i class="fas fa-box fa-3x text-muted mb-3"></i>
+            <h5 class="text-muted">暂无产品</h5>
+            <p class="text-muted">点击上方"添加产品"按钮开始添加产品</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- 添加产品模态框 -->
+<div class="modal fade" id="addProductModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title"><i class="fas fa-plus me-2"></i>添加产品</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="addProductForm" enctype="multipart/form-data">
+                <div class="modal-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="productName" class="form-label">产品名称 <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control" id="productName" name="name" required>
+                            </div>
+                            <div class="mb-3">
+                                <label for="productCategory" class="form-label">产品分类 <span class="text-danger">*</span></label>
+                                <select class="form-select" id="productCategory" name="category_id" required>
+                                    <option value="">请选择分类</option>
+                                    {% for category in categories %}
+                                    <option value="{{ category.id }}">{{ category.name }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="mb-3">
+                                <label for="productImage" class="form-label">产品图片 <span class="text-danger">*</span></label>
+                                <input type="file" class="form-control" id="productImage" name="image" 
+                                       accept="image/*" required onchange="previewImage(this, 'imagePreview')">
+                                <div class="form-text">支持 JPG、PNG 格式</div>
+                            </div>
+                            <div class="mb-3">
+                                <label for="productDepthMap" class="form-label">深度图 <span class="text-danger">*</span></label>
+                                <input type="file" class="form-control" id="productDepthMap" name="depth_map" 
+                                       accept="image/*" required onchange="previewImage(this, 'depthPreview')">
+                                <div class="form-text">用于印花贴合的深度图</div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3" id="imagePreview" style="display: none;">
+                                <label class="form-label">产品图片预览</label>
+                                <div class="text-center">
+                                    <img id="previewImg" src="" alt="预览" style="max-width: 100%; max-height: 150px; border-radius: 8px;">
+                                </div>
+                            </div>
+                            <div class="mb-3" id="depthPreview" style="display: none;">
+                                <label class="form-label">深度图预览</label>
+                                <div class="text-center">
+                                    <img id="depthPreviewImg" src="" alt="深度图预览" style="max-width: 100%; max-height: 150px; border-radius: 8px;">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-save me-2"></i>保存
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- 编辑产品模态框 -->
+<div class="modal fade" id="editProductModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title"><i class="fas fa-edit me-2"></i>编辑产品</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="editProductForm">
+                <div class="modal-body">
+                    <input type="hidden" id="editProductId" name="id">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="editProductName" class="form-label">产品名称 <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control" id="editProductName" name="name" required>
+                            </div>
+                            <div class="mb-3">
+                                <label for="editProductCategory" class="form-label">产品分类 <span class="text-danger">*</span></label>
+                                <select class="form-select" id="editProductCategory" name="category_id" required>
+                                    <option value="">请选择分类</option>
+                                    {% for category in categories %}
+                                    <option value="{{ category.id }}">{{ category.name }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">当前产品图片</label>
+                                <div class="text-center">
+                                    <img id="editImagePreview" src="" alt="当前产品图" style="max-width: 100%; max-height: 120px; border-radius: 8px; margin-bottom: 10px;">
+                                </div>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">当前深度图</label>
+                                <div class="text-center">
+                                    <img id="editDepthPreview" src="" alt="当前深度图" style="max-width: 100%; max-height: 120px; border-radius: 8px; margin-bottom: 10px;">
+                                </div>
+                            </div>
+                            <div class="mb-3">
+                                <label for="editProductImage" class="form-label">产品图</label>
+                                <input type="file" class="form-control" id="editProductImage" name="image" accept="image/*">
+                                <div class="form-text">如不重新上传，将保持原有图片</div>
+                            </div>
+                            <div class="mb-3">
+                                <label for="editDepthImage" class="form-label">深度图</label>
+                                <input type="file" class="form-control" id="editDepthImage" name="depth_map" accept="image/*">
+                                <div class="form-text">如不重新上传，将保持原有深度图</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-save me-2"></i>保存修改
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- 深度图查看模态框 -->
+<div class="modal fade" id="depthMapModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title"><i class="fas fa-layer-group me-2"></i>深度图查看</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body text-center">
+                <img id="depthMapImage" src="" alt="深度图" style="max-width: 100%; border-radius: 8px;">
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+.product-card {
+    transition: all 0.3s ease;
+    border: none;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+}
+
+.product-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 5px 20px rgba(0,0,0,0.15);
+}
+
+.product-image-container {
+    position: relative;
+    overflow: hidden;
+    aspect-ratio: 1;
+    width: 100%;
+}
+
+.product-image {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: transform 0.3s ease;
+}
+
+.product-card:hover .product-image {
+    transform: scale(1.05);
+}
+
+.product-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0,0,0,0.7);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.product-card:hover .product-overlay {
+    opacity: 1;
+}
+
+.product-info {
+    font-size: 0.85rem;
+}
+
+.page-header {
+    margin-bottom: 2rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid #eee;
+}
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// 图片预览
+function previewImage(input, previewId) {
+    if (input.files && input.files[0]) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            if (previewId === 'imagePreview') {
+                document.getElementById('previewImg').src = e.target.result;
+                document.getElementById('imagePreview').style.display = 'block';
+            } else if (previewId === 'depthPreview') {
+                document.getElementById('depthPreviewImg').src = e.target.result;
+                document.getElementById('depthPreview').style.display = 'block';
+            }
+        };
+        reader.readAsDataURL(input.files[0]);
+    }
+}
+
+// 搜索和筛选功能
+document.getElementById('searchInput').addEventListener('input', filterProducts);
+document.getElementById('categoryFilter').addEventListener('change', filterProducts);
+
+function filterProducts() {
+    const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+    const categoryFilter = document.getElementById('categoryFilter').value;
+    const productItems = document.querySelectorAll('.product-item');
+    
+    productItems.forEach(item => {
+        const name = item.getAttribute('data-name');
+        const category = item.getAttribute('data-category');
+        
+        const matchesSearch = name.includes(searchTerm);
+        const matchesCategory = !categoryFilter || category === categoryFilter;
+        
+        if (matchesSearch && matchesCategory) {
+            item.style.display = 'block';
+        } else {
+            item.style.display = 'none';
+        }
+    });
+}
+
+// 添加产品
+document.getElementById('addProductForm').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    
+    const formData = new FormData(this);
+    
+    try {
+        const response = await fetch('{{ url_for("add_product") }}', {
+            method: 'POST',
+            body: formData
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            showAlert('success', result.message);
+            setTimeout(() => location.reload(), 1500);
+        } else {
+            showAlert('danger', result.message);
+        }
+    } catch (error) {
+        showAlert('danger', '添加失败：' + error.message);
+    }
+});
+
+// 编辑产品
+function editProduct(id) {
+    fetch(`{{ url_for("get_product") }}?id=${id}`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                const product = data.data;
+                document.getElementById('editProductId').value = product.id;
+                document.getElementById('editProductName').value = product.name;
+                document.getElementById('editProductCategory').value = product.category_id;
+                
+                // 显示产品图片
+                const imagePath = product.product_image_path || product.product_image || '';
+                if (imagePath) {
+                    document.getElementById('editImagePreview').src = 
+                        `{{ url_for('uploaded_file', filename='products/') }}${imagePath}`;
+                } else {
+                    document.getElementById('editImagePreview').src = 
+                        `{{ url_for('static', filename='images/no-image.png') }}`;
+                }
+                
+                // 显示深度图
+                const depthPath = product.depth_image_path || product.depth_image || '';
+                if (depthPath) {
+                    document.getElementById('editDepthPreview').src = 
+                        `{{ url_for('uploaded_file', filename='depth_maps/') }}${depthPath}`;
+                } else {
+                    document.getElementById('editDepthPreview').src = 
+                        `{{ url_for('static', filename='images/no-image.png') }}`;
+                }
+                
+                new bootstrap.Modal(document.getElementById('editProductModal')).show();
+            }
+        });
+}
+
+// 保存编辑
+document.getElementById('editProductForm').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    
+    const formData = new FormData(this);
+    
+    // 确保产品ID被正确包含
+    const productId = document.getElementById('editProductId').value;
+    if (!productId) {
+        showAlert('danger', '产品ID缺失，请重新打开编辑窗口');
+        return;
+    }
+    
+    // 显式添加ID到FormData（以防万一）
+    formData.set('id', productId);
+    
+    try {
+        const response = await fetch('{{ url_for("update_product") }}', {
+            method: 'POST',
+            body: formData
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            showAlert('success', result.message);
+            setTimeout(() => location.reload(), 1500);
+        } else {
+            showAlert('danger', result.message);
+        }
+    } catch (error) {
+        showAlert('danger', '更新失败：' + error.message);
+    }
+});
+
+// 删除产品
+function deleteProduct(id) {
+    if (confirm('确定要删除这个产品吗？此操作不可恢复。')) {
+        fetch('{{ url_for("delete_product") }}', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({id: id})
+        })
+        .then(response => response.json())
+        .then(result => {
+            if (result.success) {
+                showAlert('success', result.message);
+                setTimeout(() => location.reload(), 1500);
+            } else {
+                showAlert('danger', result.message);
+            }
+        });
+    }
+}
+
+// 查看深度图
+function viewDepthMap(id) {
+    fetch(`{{ url_for("get_product") }}?id=${id}`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                const product = data.data;
+                
+                // 使用正确的字段名显示深度图
+                const depthPath = product.depth_image_path || product.depth_image || '';
+                if (depthPath) {
+                    document.getElementById('depthMapImage').src = 
+                        `{{ url_for('uploaded_file', filename='depth_maps/') }}${depthPath}`;
+                } else {
+                    document.getElementById('depthMapImage').src = 
+                        `{{ url_for('static', filename='images/no-image.png') }}`;
+                }
+                
+                new bootstrap.Modal(document.getElementById('depthMapModal')).show();
+            }
+        });
+}
+
+// 清空所有产品
+function clearAllProducts() {
+    if (confirm('确定要清空所有产品吗？此操作不可恢复。')) {
+        fetch('{{ url_for("clear_products") }}', {
+            method: 'POST'
+        })
+        .then(response => response.json())
+        .then(result => {
+            if (result.success) {
+                showAlert('success', result.message);
+                setTimeout(() => location.reload(), 1500);
+            } else {
+                showAlert('danger', result.message);
+            }
+        });
+    }
+}
+
+// 显示提示信息
+function showAlert(type, message) {
+    const alertDiv = document.createElement('div');
+    alertDiv.className = `alert alert-${type} alert-dismissible fade show position-fixed`;
+    alertDiv.style.cssText = 'top: 20px; right: 20px; z-index: 9999; min-width: 300px;';
+    alertDiv.innerHTML = `
+        ${message}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    `;
+    
+    document.body.appendChild(alertDiv);
+    
+    setTimeout(() => {
+        if (alertDiv.parentNode) {
+            alertDiv.parentNode.removeChild(alertDiv);
+        }
+    }, 5000);
+}
+</script>
+{% endblock %}

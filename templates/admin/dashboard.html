@@ -1,0 +1,202 @@
+{% extends "admin/base.html" %}
+
+{% block title %}仪表盘{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1><i class="fas fa-tachometer-alt me-3"></i>仪表盘</h1>
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item active">仪表盘</li>
+        </ol>
+    </nav>
+</div>
+
+<!-- 统计卡片 -->
+<div class="row">
+    <div class="col-md-2 col-sm-6">
+        <div class="stats-card" style="background: linear-gradient(135deg, #667eea, #764ba2);">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h3>{{ stats.patterns_count }}</h3>
+                    <p>印花图案</p>
+                </div>
+                <i class="fas fa-images fa-2x opacity-75"></i>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-2 col-sm-6">
+        <div class="stats-card" style="background: linear-gradient(135deg, #f093fb, #f5576c);">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h3>{{ stats.products_count }}</h3>
+                    <p>产品数量</p>
+                </div>
+                <i class="fas fa-box fa-2x opacity-75"></i>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-2 col-sm-6">
+        <div class="stats-card" style="background: linear-gradient(135deg, #4facfe, #00f2fe);">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h3>{{ stats.categories_count }}</h3>
+                    <p>产品分类</p>
+                </div>
+                <i class="fas fa-folder fa-2x opacity-75"></i>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-2 col-sm-6">
+        <div class="stats-card" style="background: linear-gradient(135deg, #43e97b, #38f9d7);">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h3>{{ stats.access_codes_count }}</h3>
+                    <p>授权码</p>
+                </div>
+                <i class="fas fa-key fa-2x opacity-75"></i>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-2 col-sm-6">
+        <div class="stats-card" style="background: linear-gradient(135deg, #fa709a, #fee140);">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h3>{{ stats.users_count }}</h3>
+                    <p>用户数量</p>
+                </div>
+                <i class="fas fa-users fa-2x opacity-75"></i>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 快速操作 -->
+<div class="row mt-4">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                <h5><i class="fas fa-bolt me-2"></i>快速操作</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-3 col-sm-6 mb-3">
+                        <a href="{{ url_for('patterns') }}" class="btn btn-primary w-100">
+                            <i class="fas fa-plus me-2"></i>添加印花图案
+                        </a>
+                    </div>
+                    <div class="col-md-3 col-sm-6 mb-3">
+                        <a href="{{ url_for('products') }}" class="btn btn-success w-100">
+                            <i class="fas fa-plus me-2"></i>添加产品
+                        </a>
+                    </div>
+                    <div class="col-md-3 col-sm-6 mb-3">
+                        <a href="{{ url_for('categories') }}" class="btn btn-info w-100">
+                            <i class="fas fa-plus me-2"></i>添加分类
+                        </a>
+                    </div>
+                    <div class="col-md-3 col-sm-6 mb-3">
+                        <a href="{{ url_for('access_codes') }}" class="btn btn-warning w-100">
+                            <i class="fas fa-plus me-2"></i>生成授权码
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header">
+                <h5><i class="fas fa-info-circle me-2"></i>系统信息</h5>
+            </div>
+            <div class="card-body">
+                <div class="mb-3">
+                    <strong>平台版本:</strong> v1.0.0
+                </div>
+                <div class="mb-3">
+                    <strong>数据库:</strong> SQLite
+                </div>
+                <div class="mb-3">
+                    <strong>Python环境:</strong> I:\works\venv\python\AutoDecal\Scripts
+                </div>
+                <div class="mb-3">
+                    <strong>前台地址:</strong> 
+                    <a href="http://localhost:5000" target="_blank">http://localhost:5000</a>
+                </div>
+                <div class="mb-3">
+                    <strong>当前授权码:</strong> 
+                    <code>TEST2024</code>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 最近活动 -->
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5><i class="fas fa-history me-2"></i>使用说明</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <h6><i class="fas fa-cog me-2"></i>后台管理功能</h6>
+                        <ul class="list-unstyled">
+                            <li><i class="fas fa-check text-success me-2"></i>印花图案上传和管理</li>
+                            <li><i class="fas fa-check text-success me-2"></i>产品图片和深度图管理</li>
+                            <li><i class="fas fa-check text-success me-2"></i>产品分类设置</li>
+                            <li><i class="fas fa-check text-success me-2"></i>授权码生成和管理</li>
+                            <li><i class="fas fa-check text-success me-2"></i>用户权限管理</li>
+                        </ul>
+                    </div>
+                    <div class="col-md-6">
+                        <h6><i class="fas fa-desktop me-2"></i>前台展示功能</h6>
+                        <ul class="list-unstyled">
+                            <li><i class="fas fa-check text-success me-2"></i>三栏式印花设计界面</li>
+                            <li><i class="fas fa-check text-success me-2"></i>图案拖拽和贴合效果</li>
+                            <li><i class="fas fa-check text-success me-2"></i>多种图案调节操作</li>
+                            <li><i class="fas fa-check text-success me-2"></i>主题模板切换</li>
+                            <li><i class="fas fa-check text-success me-2"></i>适配平板触控操作</li>
+                        </ul>
+                    </div>
+                </div>
+                
+                <div class="alert alert-info mt-3">
+                    <i class="fas fa-lightbulb me-2"></i>
+                    <strong>展会使用提示:</strong> 
+                    本平台专为展会展台设计，支持平板触控操作。建议先在后台上传印花图案和产品图片，然后使用授权码 <code>TEST2024</code> 访问前台进行展示。
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // 页面加载完成后的初始化
+    document.addEventListener('DOMContentLoaded', function() {
+        // 统计卡片动画
+        const statsCards = document.querySelectorAll('.stats-card');
+        statsCards.forEach((card, index) => {
+            setTimeout(() => {
+                card.style.opacity = '0';
+                card.style.transform = 'translateY(20px)';
+                card.style.transition = 'all 0.5s ease';
+                
+                setTimeout(() => {
+                    card.style.opacity = '1';
+                    card.style.transform = 'translateY(0)';
+                }, 100);
+            }, index * 100);
+        });
+    });
+</script>
+{% endblock %}

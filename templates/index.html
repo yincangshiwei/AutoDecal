@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>产品印花设计平台</title>
+    <link rel="stylesheet" href="/static/css/main.css">
+    <link rel="stylesheet" href="/static/css/frontend.css">
+    <link id="theme-css" rel="stylesheet" href="/static/themes/christmas.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body>
+    <!-- 授权码登录界面 -->
+    <div id="login-screen" class="screen active">
+        <div class="login-container">
+            <div class="login-card">
+                <div class="login-header">
+                    <div class="logo">
+                        <i class="fas fa-palette"></i>
+                        <h1>产品印花设计平台</h1>
+                    </div>
+                    <p class="subtitle">请输入授权码开始设计</p>
+                </div>
+                
+                <form id="login-form" class="login-form">
+                    <div class="input-group">
+                        <label for="access-code">授权码</label>
+                        <div class="input-wrapper">
+                            <i class="fas fa-key"></i>
+                            <input type="text" id="access-code" name="access_code" 
+                                   placeholder="请输入授权码" required>
+                        </div>
+                    </div>
+                    
+                    <button type="submit" class="login-btn">
+                        <i class="fas fa-sign-in-alt"></i>
+                        开始设计
+                    </button>
+                </form>
+                
+                <div id="login-error" class="error-message" style="display: none;"></div>
+                
+                <div class="login-footer">
+                    <p>展会专用设计平台 | 支持平板触控操作</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 主设计界面 -->
+    <div id="main-screen" class="screen">
+        <!-- 顶部导航栏 -->
+        <header class="top-nav">
+            <div class="nav-left">
+                <div class="logo-small">
+                    <i class="fas fa-palette"></i>
+                    <span>印花设计</span>
+                </div>
+            </div>
+            
+            <div class="nav-center">
+                <div class="theme-selector">
+                    <button id="theme-btn" class="theme-btn">
+                        <i class="fas fa-paint-brush"></i>
+                        <span id="current-theme-name">圣诞主题</span>
+                    </button>
+                </div>
+            </div>
+            
+            <div class="nav-right">
+                <button id="export-btn" class="action-btn export-btn">
+                    <i class="fas fa-download"></i>
+                    <span>导出设计</span>
+                </button>
+                <button id="logout-btn" class="action-btn logout-btn">
+                    <i class="fas fa-sign-out-alt"></i>
+                    <span>退出</span>
+                </button>
+            </div>
+        </header>
+
+        <!-- 主内容区域 -->
+        <main class="main-content">
+            <!-- 左侧面板 -->
+            <aside class="left-panel">
+                <!-- 产品分类选择 -->
+                <section class="panel-section">
+                    <h3 class="section-title">
+                        <i class="fas fa-layer-group"></i>
+                        产品分类
+                    </h3>
+                    <div id="category-list" class="category-list">
+                        <!-- 动态加载分类 -->
+                    </div>
+                </section>
+
+                <!-- 产品选择 -->
+                <section class="panel-section">
+                    <h3 class="section-title">
+                        <i class="fas fa-cube"></i>
+                        选择产品
+                    </h3>
+                    <div id="product-list" class="product-grid">
+                        <!-- 动态加载产品 -->
+                    </div>
+                </section>
+
+                <!-- 印花图案选择 -->
+                <section class="panel-section">
+                    <h3 class="section-title">
+                        <i class="fas fa-images"></i>
+                        印花图案
+                    </h3>
+                    <div class="pattern-search">
+                        <input type="text" id="pattern-search" placeholder="搜索图案...">
+                        <i class="fas fa-search"></i>
+                    </div>
+                    <div id="pattern-list" class="pattern-grid">
+                        <!-- 动态加载图案 -->
+                    </div>
+                </section>
+            </aside>
+
+            <!-- 中央设计区域 -->
+            <section class="design-area">
+                <div class="canvas-container">
+                    <div class="canvas-wrapper">
+                        <canvas id="design-canvas" width="800" height="600"></canvas>
+                        <div id="canvas-overlay" class="canvas-overlay">
+                            <div class="placeholder-content">
+                                <i class="fas fa-mouse-pointer"></i>
+                                <h3>开始设计</h3>
+                                <p>选择产品和印花图案开始设计</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 设计工具栏 -->
+                <div class="design-toolbar">
+                    <div class="toolbar-group">
+                        <label>缩放</label>
+                        <input type="range" id="scale-slider" min="0.1" max="3" step="0.1" value="1">
+                        <span id="scale-value">100%</span>
+                    </div>
+                    
+                    <div class="toolbar-group">
+                        <label>旋转</label>
+                        <input type="range" id="rotation-slider" min="0" max="360" step="1" value="0">
+                        <span id="rotation-value">0°</span>
+                    </div>
+                    
+                    <div class="toolbar-group">
+                        <label>透明度</label>
+                        <input type="range" id="opacity-slider" min="0" max="1" step="0.1" value="1">
+                        <span id="opacity-value">100%</span>
+                    </div>
+                    
+                    <div class="toolbar-actions">
+                        <button id="reset-btn" class="tool-btn">
+                            <i class="fas fa-undo"></i>
+                            重置
+                        </button>
+                        <button id="center-btn" class="tool-btn">
+                            <i class="fas fa-crosshairs"></i>
+                            居中
+                        </button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 右侧属性面板 -->
+            <aside class="right-panel">
+                <!-- 当前选择信息 -->
+                <section class="panel-section">
+                    <h3 class="section-title">
+                        <i class="fas fa-info-circle"></i>
+                        当前选择
+                    </h3>
+                    <div id="selection-info" class="selection-info">
+                        <div class="info-item">
+                            <label>产品:</label>
+                            <span id="selected-product">未选择</span>
+                        </div>
+                        <div class="info-item">
+                            <label>图案:</label>
+                            <span id="selected-pattern">未选择</span>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- 图案调整 -->
+                <section class="panel-section">
+                    <h3 class="section-title">
+                        <i class="fas fa-sliders-h"></i>
+                        图案调整
+                    </h3>
+                    <div class="adjustment-controls">
+                        <div class="control-group">
+                            <label>位置 X</label>
+                            <input type="number" id="pos-x" value="0" step="1">
+                        </div>
+                        <div class="control-group">
+                            <label>位置 Y</label>
+                            <input type="number" id="pos-y" value="0" step="1">
+                        </div>
+                        <div class="control-group">
+                            <label>宽度</label>
+                            <input type="number" id="width" value="100" step="1" min="10">
+                        </div>
+                        <div class="control-group">
+                            <label>高度</label>
+                            <input type="number" id="height" value="100" step="1" min="10">
+                        </div>
+                    </div>
+                </section>
+
+                <!-- 图层管理 -->
+                <section class="panel-section">
+                    <h3 class="section-title">
+                        <i class="fas fa-layer-group"></i>
+                        图层管理
+                    </h3>
+                    <div id="layer-list" class="layer-list">
+                        <!-- 动态生成图层 -->
+                    </div>
+                </section>
+            </aside>
+        </main>
+    </div>
+
+    <!-- 主题选择弹窗 -->
+    <div id="theme-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>选择主题</h3>
+                <button class="modal-close">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div id="theme-options" class="theme-options">
+                    <!-- 动态加载主题选项 -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 加载提示 -->
+    <div id="loading" class="loading-overlay" style="display: none;">
+        <div class="loading-spinner">
+            <i class="fas fa-spinner fa-spin"></i>
+            <p>加载中...</p>
+        </div>
+    </div>
+
+    <!-- JavaScript -->
+    <!-- JavaScript -->
+    <script src="/static/js/utils.js"></script>
+    <script src="/static/js/frontend.js"></script>
+</body>
+</html>

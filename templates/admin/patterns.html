@@ -1,0 +1,430 @@
+{% extends "admin/base.html" %}
+
+{% block title %}印花图案管理{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1><i class="fas fa-images me-3"></i>印花图案管理</h1>
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{{ url_for('index') }}">仪表盘</a></li>
+            <li class="breadcrumb-item active">印花图案管理</li>
+        </ol>
+    </nav>
+</div>
+
+<!-- 操作按钮 -->
+<div class="row mb-4">
+    <div class="col-md-6">
+        <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addPatternModal">
+            <i class="fas fa-plus me-2"></i>添加印花图案
+        </button>
+        <button type="button" class="btn btn-danger ms-2" onclick="clearAllPatterns()">
+            <i class="fas fa-trash me-2"></i>清空所有图案
+        </button>
+    </div>
+    <div class="col-md-6">
+        <div class="input-group">
+            <input type="text" class="form-control" id="searchInput" placeholder="搜索图案名称...">
+            <button class="btn btn-outline-secondary" type="button">
+                <i class="fas fa-search"></i>
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- 图案列表 -->
+<div class="card">
+    <div class="card-header">
+        <h5><i class="fas fa-list me-2"></i>图案列表 ({{ patterns|length }} 个)</h5>
+    </div>
+    <div class="card-body">
+        {% if patterns %}
+        <div class="row" id="patternsGrid">
+            {% for pattern in patterns %}
+            <div class="col-lg-2 col-md-3 col-sm-4 col-6 mb-4 pattern-item" data-name="{{ pattern.name|lower }}">
+                <div class="card pattern-card">
+                    <div class="pattern-image-container">
+                        <img src="{{ url_for('uploaded_file', filename='patterns/' + pattern.filename) }}" 
+                             class="card-img-top pattern-image" alt="{{ pattern.name }}"
+                             onerror="this.src='{{ url_for('static', filename='images/no-image.png') }}'">
+                        <div class="pattern-overlay">
+                            <button class="btn btn-sm btn-primary" onclick="editPattern({{ pattern.id }})">
+                                <i class="fas fa-edit"></i>
+                            </button>
+                            <button class="btn btn-sm btn-danger" onclick="deletePattern({{ pattern.id }})">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <h6 class="card-title">{{ pattern.name }}</h6>
+                        <div class="pattern-info">
+                            <small class="text-muted">
+                                <i class="fas fa-ruler-combined me-1"></i>{{ pattern.image_width }}×{{ pattern.image_height }}
+                            </small>
+                            <br>
+                            <small class="text-muted">
+                                <i class="fas fa-file-alt me-1"></i>{{ (pattern.file_size / 1024) | round(1) }} KB
+                            </small>
+                            <br>
+                            <small class="text-muted">
+                                <i class="fas fa-clock me-1"></i>{{ pattern.upload_time[:10] if pattern.upload_time else '未知' }}
+                            </small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="text-center py-5">
+            <i class="fas fa-images fa-3x text-muted mb-3"></i>
+            <h5 class="text-muted">暂无印花图案</h5>
+            <p class="text-muted">点击上方"添加印花图案"按钮开始上传图案</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- 添加图案模态框 -->
+<div class="modal fade" id="addPatternModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title"><i class="fas fa-plus me-2"></i>添加印花图案</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="addPatternForm" enctype="multipart/form-data">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="patternName" class="form-label">图案名称 <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" id="patternName" name="name" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="patternFile" class="form-label">图案文件 <span class="text-danger">*</span></label>
+                        <input type="file" class="form-control" id="patternFile" name="file" 
+                               accept="image/*" required onchange="previewImage(this)">
+                        <div class="form-text">支持 JPG、PNG、GIF 格式，建议尺寸不超过 2000×2000 像素</div>
+                    </div>
+                    <div class="mb-3" id="imagePreview" style="display: none;">
+                        <label class="form-label">图片预览</label>
+                        <div class="text-center">
+                            <img id="previewImg" src="" alt="预览" style="max-width: 100%; max-height: 200px; border-radius: 8px;">
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-save me-2"></i>保存
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- 编辑图案模态框 -->
+<div class="modal fade" id="editPatternModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title"><i class="fas fa-edit me-2"></i>编辑印花图案</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="editPatternForm" enctype="multipart/form-data">
+                <div class="modal-body">
+                    <input type="hidden" id="editPatternId" name="id">
+                    <div class="mb-3">
+                        <label for="editPatternName" class="form-label">图案名称 <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" id="editPatternName" name="name" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">当前图片</label>
+                        <div class="text-center">
+                            <img id="editPreviewImg" src="" alt="当前图片" style="max-width: 100%; max-height: 200px; border-radius: 8px;">
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="editPatternFile" class="form-label">重新上传图片 <small class="text-muted">(可选)</small></label>
+                        <input type="file" class="form-control" id="editPatternFile" name="file" 
+                               accept="image/*" onchange="previewEditImage(this)">
+                        <div class="form-text">支持 JPG、PNG、GIF 格式，建议尺寸不超过 2000×2000 像素</div>
+                    </div>
+                    <div class="mb-3" id="editImagePreview" style="display: none;">
+                        <label class="form-label">新图片预览</label>
+                        <div class="text-center">
+                            <img id="editNewPreviewImg" src="" alt="新图片预览" style="max-width: 100%; max-height: 200px; border-radius: 8px;">
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-save me-2"></i>保存修改
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+.pattern-card {
+    transition: all 0.3s ease;
+    border: none;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+}
+
+.pattern-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 5px 20px rgba(0,0,0,0.15);
+}
+
+.pattern-image-container {
+    position: relative;
+    overflow: hidden;
+    aspect-ratio: 1;
+    width: 100%;
+}
+
+.pattern-image {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: transform 0.3s ease;
+}
+
+.pattern-card:hover .pattern-image {
+    transform: scale(1.05);
+}
+
+.pattern-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0,0,0,0.7);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.pattern-card:hover .pattern-overlay {
+    opacity: 1;
+}
+
+.pattern-info {
+    font-size: 0.85rem;
+}
+
+.page-header {
+    margin-bottom: 2rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid #eee;
+}
+
+.stats-card {
+    background: white;
+    border-radius: 15px;
+    padding: 20px;
+    color: white;
+    margin-bottom: 20px;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+    transition: transform 0.3s ease;
+}
+
+.stats-card:hover {
+    transform: translateY(-5px);
+}
+
+.stats-card h3 {
+    font-size: 2rem;
+    font-weight: bold;
+    margin: 0;
+}
+
+.stats-card p {
+    margin: 0;
+    opacity: 0.9;
+}
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// 图片预览
+function previewImage(input) {
+    if (input.files && input.files[0]) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            document.getElementById('previewImg').src = e.target.result;
+            document.getElementById('imagePreview').style.display = 'block';
+        };
+        reader.readAsDataURL(input.files[0]);
+    }
+}
+
+// 编辑时的新图片预览
+function previewEditImage(input) {
+    if (input.files && input.files[0]) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            document.getElementById('editNewPreviewImg').src = e.target.result;
+            document.getElementById('editImagePreview').style.display = 'block';
+        };
+        reader.readAsDataURL(input.files[0]);
+    } else {
+        document.getElementById('editImagePreview').style.display = 'none';
+    }
+}
+
+// 搜索功能
+document.getElementById('searchInput').addEventListener('input', function() {
+    const searchTerm = this.value.toLowerCase();
+    const patternItems = document.querySelectorAll('.pattern-item');
+    
+    patternItems.forEach(item => {
+        const name = item.getAttribute('data-name');
+        if (name.includes(searchTerm)) {
+            item.style.display = 'block';
+        } else {
+            item.style.display = 'none';
+        }
+    });
+});
+
+// 添加图案
+document.getElementById('addPatternForm').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    
+    const formData = new FormData(this);
+    
+    try {
+        const response = await fetch('{{ url_for("add_pattern") }}', {
+            method: 'POST',
+            body: formData
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            showAlert('success', result.message);
+            setTimeout(() => location.reload(), 1500);
+        } else {
+            showAlert('danger', result.message);
+        }
+    } catch (error) {
+        showAlert('danger', '添加失败：' + error.message);
+    }
+});
+
+// 编辑图案
+function editPattern(id) {
+    fetch(`{{ url_for("get_pattern") }}?id=${id}`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                const pattern = data.data;
+                document.getElementById('editPatternId').value = pattern.id;
+                document.getElementById('editPatternName').value = pattern.name;
+                document.getElementById('editPreviewImg').src = 
+                    `{{ url_for('uploaded_file', filename='patterns/') }}${pattern.filename}`;
+                
+                new bootstrap.Modal(document.getElementById('editPatternModal')).show();
+            }
+        });
+}
+
+// 保存编辑
+document.getElementById('editPatternForm').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    
+    const formData = new FormData(this);
+    
+    try {
+        const response = await fetch('{{ url_for("update_pattern") }}', {
+            method: 'POST',
+            body: formData
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            showAlert('success', result.message);
+            setTimeout(() => location.reload(), 1500);
+        } else {
+            showAlert('danger', result.message);
+        }
+    } catch (error) {
+        showAlert('danger', '更新失败：' + error.message);
+    }
+});
+
+// 删除图案
+function deletePattern(id) {
+    if (confirm('确定要删除这个印花图案吗？此操作不可恢复。')) {
+        fetch('{{ url_for("delete_pattern") }}', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({id: id})
+        })
+        .then(response => response.json())
+        .then(result => {
+            if (result.success) {
+                showAlert('success', result.message);
+                setTimeout(() => location.reload(), 1500);
+            } else {
+                showAlert('danger', result.message);
+            }
+        });
+    }
+}
+
+// 清空所有图案
+function clearAllPatterns() {
+    if (confirm('确定要清空所有印花图案吗？此操作不可恢复。')) {
+        fetch('{{ url_for("clear_patterns") }}', {
+            method: 'POST'
+        })
+        .then(response => response.json())
+        .then(result => {
+            if (result.success) {
+                showAlert('success', result.message);
+                setTimeout(() => location.reload(), 1500);
+            } else {
+                showAlert('danger', result.message);
+            }
+        });
+    }
+}
+
+// 显示提示信息
+function showAlert(type, message) {
+    const alertDiv = document.createElement('div');
+    alertDiv.className = `alert alert-${type} alert-dismissible fade show position-fixed`;
+    alertDiv.style.cssText = 'top: 20px; right: 20px; z-index: 9999; min-width: 300px;';
+    alertDiv.innerHTML = `
+        ${message}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    `;
+    
+    document.body.appendChild(alertDiv);
+    
+    setTimeout(() => {
+        if (alertDiv.parentNode) {
+            alertDiv.parentNode.removeChild(alertDiv);
+        }
+    }, 5000);
+}
+</script>
+{% endblock %}

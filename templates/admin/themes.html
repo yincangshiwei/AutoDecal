@@ -1,0 +1,512 @@
+{% extends "admin/base.html" %}
+
+{% block title %}主题管理{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1><i class="fas fa-palette me-3"></i>主题管理</h1>
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{{ url_for('index') }}">仪表盘</a></li>
+            <li class="breadcrumb-item active">主题管理</li>
+        </ol>
+    </nav>
+</div>
+
+<!-- 操作按钮 -->
+<div class="row mb-4">
+    <div class="col-md-6">
+        <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addThemeModal">
+            <i class="fas fa-plus me-2"></i>添加主题
+        </button>
+    </div>
+    <div class="col-md-6">
+        <div class="input-group">
+            <input type="text" class="form-control" id="searchInput" placeholder="搜索主题名称...">
+            <button class="btn btn-outline-secondary" type="button">
+                <i class="fas fa-search"></i>
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- 主题列表 -->
+<div class="card">
+    <div class="card-header">
+        <h5><i class="fas fa-list me-2"></i>主题列表 ({{ themes|length }} 个)</h5>
+    </div>
+    <div class="card-body">
+        {% if themes %}
+        <div class="row" id="themesGrid">
+            {% for theme in themes %}
+            <div class="col-md-4 col-sm-6 mb-4 theme-item" data-name="{{ theme.name|lower }}">
+                <div class="card theme-card">
+                    <div class="theme-preview" style="background: {{ theme.primary_color or '#007bff' }};">
+                        <div class="theme-overlay">
+                            <button class="btn btn-sm btn-primary" onclick="editTheme({{ theme.id }})">
+                                <i class="fas fa-edit"></i>
+                            </button>
+                            <button class="btn btn-sm btn-danger" onclick="deleteTheme({{ theme.id }})">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                            {% if theme.is_active %}
+                            <button class="btn btn-sm btn-warning" onclick="toggleThemeStatus({{ theme.id }}, false)">
+                                <i class="fas fa-pause"></i>
+                            </button>
+                            {% else %}
+                            <button class="btn btn-sm btn-success" onclick="toggleThemeStatus({{ theme.id }}, true)">
+                                <i class="fas fa-play"></i>
+                            </button>
+                            {% endif %}
+                        </div>
+                        <div class="theme-colors">
+                            <div class="color-dot" style="background: {{ theme.primary_color or '#007bff' }};"></div>
+                            <div class="color-dot" style="background: {{ theme.secondary_color or '#6c757d' }};"></div>
+                            <div class="color-dot" style="background: {{ theme.accent_color or '#28a745' }};"></div>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <h6 class="card-title d-flex align-items-center">
+                            {{ theme.name }}
+                            {% if theme.is_active %}
+                                <span class="badge bg-success ms-2">启用</span>
+                            {% else %}
+                                <span class="badge bg-secondary ms-2">禁用</span>
+                            {% endif %}
+                        </h6>
+                        <div class="theme-info">
+                            <small class="text-muted">
+                                <i class="fas fa-calendar me-1"></i>{{ theme.season or '通用' }}
+                            </small>
+                            <br>
+                            <small class="text-muted">
+                                <i class="fas fa-clock me-1"></i>{{ theme.created_time[:10] if theme.created_time else '未知' }}
+                            </small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="text-center py-5">
+            <i class="fas fa-palette fa-3x text-muted mb-3"></i>
+            <h5 class="text-muted">暂无主题</h5>
+            <p class="text-muted">点击上方"添加主题"按钮开始创建主题</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- 添加主题模态框 -->
+<div class="modal fade" id="addThemeModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title"><i class="fas fa-plus me-2"></i>添加主题</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="addThemeForm">
+                <div class="modal-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="themeName" class="form-label">主题名称 <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control" id="themeName" name="name" required>
+                            </div>
+                            <div class="mb-3">
+                                <label for="themeSeason" class="form-label">适用季节</label>
+                                <select class="form-select" id="themeSeason" name="season">
+                                    <option value="">通用</option>
+                                    <option value="spring">春季</option>
+                                    <option value="summer">夏季</option>
+                                    <option value="autumn">秋季</option>
+                                    <option value="winter">冬季</option>
+                                    <option value="christmas">圣诞节</option>
+                                    <option value="easter">复活节</option>
+                                    <option value="halloween">万圣节</option>
+                                    <option value="valentine">情人节</option>
+                                </select>
+                            </div>
+                            <div class="mb-3">
+                                <label for="themeDescription" class="form-label">主题描述</label>
+                                <textarea class="form-control" id="themeDescription" name="description" rows="3"></textarea>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="primaryColor" class="form-label">主色调 <span class="text-danger">*</span></label>
+                                <div class="input-group">
+                                    <input type="color" class="form-control form-control-color" id="primaryColor" name="primary_color" value="#007bff" required>
+                                    <input type="text" class="form-control" id="primaryColorText" value="#007bff">
+                                </div>
+                            </div>
+                            <div class="mb-3">
+                                <label for="secondaryColor" class="form-label">辅助色</label>
+                                <div class="input-group">
+                                    <input type="color" class="form-control form-control-color" id="secondaryColor" name="secondary_color" value="#6c757d">
+                                    <input type="text" class="form-control" id="secondaryColorText" value="#6c757d">
+                                </div>
+                            </div>
+                            <div class="mb-3">
+                                <label for="accentColor" class="form-label">强调色</label>
+                                <div class="input-group">
+                                    <input type="color" class="form-control form-control-color" id="accentColor" name="accent_color" value="#28a745">
+                                    <input type="text" class="form-control" id="accentColorText" value="#28a745">
+                                </div>
+                            </div>
+                            <div class="mb-3">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" id="isActive" name="is_active" checked>
+                                    <label class="form-check-label" for="isActive">
+                                        启用主题
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-save me-2"></i>保存
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- 编辑主题模态框 -->
+<div class="modal fade" id="editThemeModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title"><i class="fas fa-edit me-2"></i>编辑主题</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="editThemeForm">
+                <div class="modal-body">
+                    <input type="hidden" id="editThemeId" name="id">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="editThemeName" class="form-label">主题名称 <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control" id="editThemeName" name="name" required>
+                            </div>
+                            <div class="mb-3">
+                                <label for="editThemeSeason" class="form-label">适用季节</label>
+                                <select class="form-select" id="editThemeSeason" name="season">
+                                    <option value="">通用</option>
+                                    <option value="spring">春季</option>
+                                    <option value="summer">夏季</option>
+                                    <option value="autumn">秋季</option>
+                                    <option value="winter">冬季</option>
+                                    <option value="christmas">圣诞节</option>
+                                    <option value="easter">复活节</option>
+                                    <option value="halloween">万圣节</option>
+                                    <option value="valentine">情人节</option>
+                                </select>
+                            </div>
+                            <div class="mb-3">
+                                <label for="editThemeDescription" class="form-label">主题描述</label>
+                                <textarea class="form-control" id="editThemeDescription" name="description" rows="3"></textarea>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="editPrimaryColor" class="form-label">主色调 <span class="text-danger">*</span></label>
+                                <div class="input-group">
+                                    <input type="color" class="form-control form-control-color" id="editPrimaryColor" name="primary_color" required>
+                                    <input type="text" class="form-control" id="editPrimaryColorText">
+                                </div>
+                            </div>
+                            <div class="mb-3">
+                                <label for="editSecondaryColor" class="form-label">辅助色</label>
+                                <div class="input-group">
+                                    <input type="color" class="form-control form-control-color" id="editSecondaryColor" name="secondary_color">
+                                    <input type="text" class="form-control" id="editSecondaryColorText">
+                                </div>
+                            </div>
+                            <div class="mb-3">
+                                <label for="editAccentColor" class="form-label">强调色</label>
+                                <div class="input-group">
+                                    <input type="color" class="form-control form-control-color" id="editAccentColor" name="accent_color">
+                                    <input type="text" class="form-control" id="editAccentColorText">
+                                </div>
+                            </div>
+                            <div class="mb-3">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" id="editIsActive" name="is_active">
+                                    <label class="form-check-label" for="editIsActive">
+                                        启用主题
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-save me-2"></i>保存修改
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+.page-header {
+    margin-bottom: 2rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid #eee;
+}
+
+.theme-card {
+    transition: all 0.3s ease;
+    border: none;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+}
+
+.theme-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 5px 20px rgba(0,0,0,0.15);
+}
+
+.theme-preview {
+    position: relative;
+    height: 150px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+}
+
+.theme-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0,0,0,0.7);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.theme-card:hover .theme-overlay {
+    opacity: 1;
+}
+
+.theme-colors {
+    position: absolute;
+    bottom: 10px;
+    right: 10px;
+    display: flex;
+    gap: 5px;
+}
+
+.color-dot {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    border: 2px solid rgba(255,255,255,0.8);
+    box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+}
+
+.theme-info {
+    font-size: 0.85rem;
+}
+
+.badge {
+    font-size: 0.7rem;
+}
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// 搜索功能
+document.getElementById('searchInput').addEventListener('input', function() {
+    const searchTerm = this.value.toLowerCase();
+    const themeItems = document.querySelectorAll('.theme-item');
+    
+    themeItems.forEach(item => {
+        const name = item.getAttribute('data-name');
+        if (name.includes(searchTerm)) {
+            item.style.display = 'block';
+        } else {
+            item.style.display = 'none';
+        }
+    });
+});
+
+// 颜色选择器同步
+document.getElementById('primaryColor').addEventListener('change', function() {
+    document.getElementById('primaryColorText').value = this.value;
+});
+
+document.getElementById('secondaryColor').addEventListener('change', function() {
+    document.getElementById('secondaryColorText').value = this.value;
+});
+
+document.getElementById('accentColor').addEventListener('change', function() {
+    document.getElementById('accentColorText').value = this.value;
+});
+
+// 添加主题
+document.getElementById('addThemeForm').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    
+    const formData = new FormData(this);
+    const data = Object.fromEntries(formData);
+    data.is_active = document.getElementById('isActive').checked;
+    
+    try {
+        const response = await fetch('{{ url_for("add_theme") }}', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(data)
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            showAlert('success', result.message);
+            setTimeout(() => location.reload(), 1500);
+        } else {
+            showAlert('danger', result.message);
+        }
+    } catch (error) {
+        showAlert('danger', '添加失败：' + error.message);
+    }
+});
+
+// 编辑主题
+function editTheme(id) {
+    fetch(`{{ url_for("get_theme") }}?id=${id}`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                const theme = data.data;
+                document.getElementById('editThemeId').value = theme.id;
+                document.getElementById('editThemeName').value = theme.name;
+                document.getElementById('editThemeSeason').value = theme.season || '';
+                document.getElementById('editThemeDescription').value = theme.description || '';
+                document.getElementById('editPrimaryColor').value = theme.primary_color || '#007bff';
+                document.getElementById('editPrimaryColorText').value = theme.primary_color || '#007bff';
+                document.getElementById('editSecondaryColor').value = theme.secondary_color || '#6c757d';
+                document.getElementById('editSecondaryColorText').value = theme.secondary_color || '#6c757d';
+                document.getElementById('editAccentColor').value = theme.accent_color || '#28a745';
+                document.getElementById('editAccentColorText').value = theme.accent_color || '#28a745';
+                document.getElementById('editIsActive').checked = theme.is_active;
+                
+                new bootstrap.Modal(document.getElementById('editThemeModal')).show();
+            }
+        });
+}
+
+// 保存编辑
+document.getElementById('editThemeForm').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    
+    const formData = new FormData(this);
+    const data = Object.fromEntries(formData);
+    data.is_active = document.getElementById('editIsActive').checked;
+    
+    try {
+        const response = await fetch('{{ url_for("update_theme") }}', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(data)
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            showAlert('success', result.message);
+            setTimeout(() => location.reload(), 1500);
+        } else {
+            showAlert('danger', result.message);
+        }
+    } catch (error) {
+        showAlert('danger', '更新失败：' + error.message);
+    }
+});
+
+// 删除主题
+function deleteTheme(id) {
+    if (confirm('确定要删除这个主题吗？此操作不可恢复。')) {
+        fetch('{{ url_for("delete_theme") }}', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({id: id})
+        })
+        .then(response => response.json())
+        .then(result => {
+            if (result.success) {
+                showAlert('success', result.message);
+                setTimeout(() => location.reload(), 1500);
+            } else {
+                showAlert('danger', result.message);
+            }
+        });
+    }
+}
+
+// 切换主题状态
+function toggleThemeStatus(id, isActive) {
+    const action = isActive ? '启用' : '禁用';
+    if (confirm(`确定要${action}这个主题吗？`)) {
+        fetch('{{ url_for("toggle_theme_status") }}', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({id: id, is_active: isActive})
+        })
+        .then(response => response.json())
+        .then(result => {
+            if (result.success) {
+                showAlert('success', result.message);
+                setTimeout(() => location.reload(), 1500);
+            } else {
+                showAlert('danger', result.message);
+            }
+        });
+    }
+}
+
+// 显示提示信息
+function showAlert(type, message) {
+    const alertDiv = document.createElement('div');
+    alertDiv.className = `alert alert-${type} alert-dismissible fade show position-fixed`;
+    alertDiv.style.cssText = 'top: 20px; right: 20px; z-index: 9999; min-width: 300px;';
+    alertDiv.innerHTML = `
+        ${message}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    `;
+    
+    document.body.appendChild(alertDiv);
+    
+    setTimeout(() => {
+        if (alertDiv.parentNode) {
+            alertDiv.parentNode.removeChild(alertDiv);
+        }
+    }, 5000);
+}
+</script>
+{% endblock %}

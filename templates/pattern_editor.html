@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>3D环绕贴图编辑器</title>
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/tailwindcss/2.2.19/tailwind.min.css" rel="stylesheet">
+  <link href="https://fonts.loli.net/css?family=Noto+Sans+SC:400,500,700&display=swap" rel="stylesheet">
+  <link id="themeStylesheet" rel="stylesheet" href="">
+  <style>
+    body {
+      font-family: 'Noto Sans SC', sans-serif;
+      background: #0f172a;
+      min-height: 100vh;
+      color: #e2e8f0;
+      margin: 0;
+      padding: 0;
+      /* 防止整个页面在触摸时被拖动 */
+      overscroll-behavior: none;
+      -webkit-overflow-scrolling: touch;
+    }
+    .editor-container {
+      box-shadow: 0 20px 50px rgba(0,0,0,0.3);
+      background: rgba(26, 32, 44, 0.8);
+      border-radius: 0;
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(255,255,255,0.1);
+      height: 100vh;
+    }
+    .control-panel {
+      background: linear-gradient(to right, rgba(30, 41, 59, 0.8), rgba(15, 23, 42, 0.8));
+      border-radius: 8px;
+      border: 1px solid rgba(255,255,255,0.1);
+    }
+    .btn-gradient {
+      background: linear-gradient(to right, #6366f1 0%, #8b5cf6 100%);
+      color: white;
+      transition: all 0.3s ease;
+    }
+    .btn-gradient:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 5px 15px rgba(99, 102, 241, 0.3);
+    }
+    .slider-thumb::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 20px;
+      height: 20px;
+      background: #6366f1;
+      border-radius: 50%;
+      cursor: pointer;
+      box-shadow: 0 0 5px rgba(0,0,0,0.2);
+    }
+    .canvas-container {
+      background: linear-gradient(45deg, #1e293b 25%, transparent 25%) -50px 0,
+                  linear-gradient(-45deg, #1e293b 25%, transparent 25%) -50px 0,
+                  linear-gradient(45deg, transparent 75%, #1e293b 75%),
+                  linear-gradient(-45deg, transparent 75%, #1e293b 75%);
+      background-size: 100px 100px;
+      /* 防止触摸时页面滚动 */
+      touch-action: none;
+      overflow: hidden;
+    }
+    .pattern-list, .product-list {
+      max-height: 400px;
+      overflow-y: auto;
+    }
+    .pattern-item, .product-item {
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+    .pattern-item:hover, .product-item:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 5px 15px rgba(99, 102, 241, 0.2);
+    }
+    .pattern-item.active, .product-item.active {
+      border: 2px solid #6366f1;
+    }
+    .blend-mode-select {
+      background: rgba(15, 23, 42, 0.8);
+      border: 1px solid rgba(255,255,255,0.1);
+      color: white;
+      border-radius: 6px;
+      padding: 0.5rem;
+    }
+    .category-select {
+      background: rgba(30, 41, 59, 0.8);
+      border: 1px solid rgba(255,255,255,0.1);
+      color: white;
+      border-radius: 6px;
+      padding: 0.5rem;
+      width: 100%;
+      transition: all 0.3s ease;
+      appearance: none;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='%23e2e8f0' viewBox='0 0 16 16'%3E%3Cpath d='M7.247 11.14 2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 0 1 .753 1.659l-4.796 5.48a1 1 0 0 1-1.506 0z'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 0.75rem center;
+      background-size: 16px 12px;
+    }
+    .category-select:hover {
+      border-color: rgba(99, 102, 241, 0.5);
+    }
+    .category-select:focus {
+      outline: none;
+      box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.5);
+    }
+    .theme-select {
+      background: rgba(30, 41, 59, 0.8);
+      border: 1px solid rgba(255,255,255,0.1);
+      color: white;
+      border-radius: 6px;
+      min-width: 120px;
+      transition: all 0.3s ease;
+      appearance: none;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='%23e2e8f0' viewBox='0 0 16 16'%3E%3Cpath d='M7.247 11.14 2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 0 1 .753 1.659l-4.796 5.48a1 1 0 0 1-1.506 0z'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 0.75rem center;
+      background-size: 16px 12px;
+    }
+    .theme-select:hover {
+      border-color: rgba(99, 102, 241, 0.5);
+    }
+    .theme-select:focus {
+      outline: none;
+      box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.5);
+    }
+    @media (max-width: 1024px) and (min-width: 769px) {
+      /* iPad样式 */
+      .pattern-list {
+        grid-template-columns: repeat(2, 1fr) !important;
+      }
+      .preview-panel {
+        max-width: 400px !important;
+      }
+      .canvas-container {
+        width: 400px !important;
+        height: 400px !important;
+      }
+    }
+    @media (max-width: 768px) {
+      .editor-layout {
+        flex-direction: column;
+      }
+      .pattern-panel, .preview-panel, .product-panel {
+        width: 100% !important;
+        max-width: 100% !important;
+      }
+      .pattern-list {
+        grid-template-columns: repeat(2, 1fr);
+      }
+    }
+  </style>
+</head>
+<body class="py-0 px-0">
+  <div class="editor-container p-6">
+    <h1 class="text-4xl font-bold text-center mb-8 text-white">3D环绕贴图编辑器</h1>
+    
+    <div class="editor-layout flex flex-wrap gap-6 mb-6">
+      <!-- 左侧贴图列表 -->
+      <div class="pattern-panel w-1/4 min-w-[250px]">
+        <h2 class="text-xl font-semibold mb-4 text-white">贴图图案</h2>
+        <div class="pattern-list grid grid-cols-3 gap-3 p-3 bg-gray-800 rounded-lg">
+          </div>
+      </div>
+
+      <!-- 中间预览区域 -->
+      <div class="preview-panel flex-1 min-w-[400px] max-w-[450px]">
+        <h2 class="text-xl font-semibold mb-4 text-white">效果预览</h2>
+        <div class="relative border-2 border-gray-700 rounded-lg overflow-hidden canvas-container mx-auto" style="width: 450px; height: 450px;">
+          <canvas id="editorCanvas" class="absolute inset-0 w-full h-full"></canvas>
+          <div id="canvasPlaceholder" class="absolute inset-0 flex items-center justify-center text-gray-400">
+            请选择贴图和产品图开始编辑
+          </div>
+        </div>
+      </div>
+
+      <!-- 右侧产品图列表 -->
+      <div class="product-panel w-1/5 min-w-[200px]">
+        <h2 class="text-xl font-semibold mb-4 text-white">产品图</h2>
+        <select id="categorySelect" class="category-select mb-4">
+          <option value="all">全部产品</option>
+        </select>
+        <div class="product-list space-y-3 p-3 bg-gray-800 rounded-lg">
+          </div>
+      </div>
+    </div>
+
+    <!-- 下方控制区域 -->
+    <div class="control-panel p-6">
+      <h2 class="text-xl font-semibold mb-4 text-white">图案参数控制</h2>
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div>
+          <label class="block text-sm font-medium text-gray-300 mb-1">形变强度 (0.300)</label>
+          <input type="range" id="distortion" min="0" max="1" step="0.001" value="0.300" class="w-full slider-thumb">
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-300 mb-1">透明度 (1.000)</label>
+          <input type="range" id="opacity" min="0" max="1" step="0.001" value="1.000" class="w-full slider-thumb">
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-300 mb-1">水平倾斜 (0.000)</label>
+          <input type="range" id="skewX" min="-1" max="1" step="0.001" value="0.000" class="w-full slider-thumb">
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-300 mb-1">垂直倾斜 (0.000)</label>
+          <input type="range" id="skewY" min="-1" max="1" step="0.001" value="0.000" class="w-full slider-thumb">
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-300 mb-1">混合模式</label>
+          <select id="blendMode" class="blend-mode-select w-full">
+            <option value="normal">Normal</option>
+            <option value="multiply">Multiply</option>
+            <option value="screen">Screen</option>
+            <option value="overlay">Overlay</option>
+            <option value="darken">Darken</option>
+            <option value="lighten">Lighten</option>
+            <option value="color-dodge">Color Dodge</option>
+            <option value="color-burn">Color Burn</option>
+            <option value="soft-light">Soft Light</option>
+            <option value="hard-light">Hard Light</option>
+            <option value="hologram">Hologram</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-300 mb-1">深度阈值 (0.700)</label>
+          <input type="range" id="depthThreshold" min="0" max="1" step="0.001" value="0.700" class="w-full slider-thumb">
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-300 mb-1">透视强度 (0.000)</label>
+          <input type="range" id="perspective" min="0" max="2" step="0.001" value="0.000" class="w-full slider-thumb">
+        </div>
+      </div>
+
+      <div class="flex flex-wrap justify-between items-center gap-4 mt-6">
+        <div class="flex gap-4">
+          <button id="resetBtn" class="px-4 py-2 rounded-md bg-gray-700 text-gray-300 hover:bg-gray-600 transition">重置</button>
+          <button id="exportBtn" class="px-4 py-2 rounded-md btn-gradient">导出图片</button>
+        </div>
+        <div class="flex items-center gap-2">
+          <label class="text-sm font-medium text-gray-300">主题:</label>
+          <select id="themeSelect" class="theme-select px-3 py-2 rounded-md">
+            <option value="default">默认主题</option>
+            <option value="christmas">圣诞主题</option>
+            <option value="halloween">万圣节主题</option>
+            <option value="easter">复活节主题</option>
+            <option value="spring-festival">春节主题</option>
+          </select>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="preload-images" style="display:none;">
+    <!-- 动态加载的图片将在这里预加载 -->
+  </div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script src="{{ url_for('static', filename='js/pattern_editor.js') }}"></script>
+</body>
+</html>

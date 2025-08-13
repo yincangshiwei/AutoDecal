@@ -1,0 +1,470 @@
+{% extends "admin/base.html" %}
+
+{% block title %}授权码管理{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1><i class="fas fa-key me-3"></i>授权码管理</h1>
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{{ url_for('index') }}">仪表盘</a></li>
+            <li class="breadcrumb-item active">授权码管理</li>
+        </ol>
+    </nav>
+</div>
+
+<!-- 操作按钮 -->
+<div class="row mb-4">
+    <div class="col-md-6">
+        <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addCodeModal">
+            <i class="fas fa-plus me-2"></i>添加授权码
+        </button>
+        <button type="button" class="btn btn-success ms-2" onclick="generateRandomCode()">
+            <i class="fas fa-random me-2"></i>生成随机码
+        </button>
+    </div>
+    <div class="col-md-6">
+        <div class="input-group">
+            <select class="form-select" id="statusFilter">
+                <option value="">所有状态</option>
+                <option value="active">启用</option>
+                <option value="inactive">禁用</option>
+                <option value="expired">已过期</option>
+            </select>
+            <input type="text" class="form-control" id="searchInput" placeholder="搜索授权码...">
+            <button class="btn btn-outline-secondary" type="button">
+                <i class="fas fa-search"></i>
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- 授权码列表 -->
+<div class="card">
+    <div class="card-header">
+        <h5><i class="fas fa-list me-2"></i>授权码列表 ({{ access_codes|length }} 个)</h5>
+    </div>
+    <div class="card-body">
+        {% if access_codes %}
+        <div class="table-responsive">
+            <table class="table table-hover">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>授权码</th>
+                        <th>描述</th>
+                        <th>状态</th>
+                        <th>使用次数</th>
+                        <th>最大使用次数</th>
+                        <th>过期时间</th>
+                        <th>创建时间</th>
+                        <th>操作</th>
+                    </tr>
+                </thead>
+                <tbody id="codesTable">
+                    {% for code in access_codes %}
+                    <tr class="code-item" data-code="{{ code.code|lower }}" data-status="{{ code.status }}">
+                        <td>{{ code.id }}</td>
+                        <td>
+                            <code class="bg-light px-2 py-1 rounded">{{ code.code }}</code>
+                            <button class="btn btn-sm btn-outline-secondary ms-1" onclick="copyToClipboard('{{ code.code }}')">
+                                <i class="fas fa-copy"></i>
+                            </button>
+                        </td>
+                        <td>{{ code.description or '无描述' }}</td>
+                        <td>
+                            {% if code.status == 'active' %}
+                                <span class="badge bg-success">启用</span>
+                            {% elif code.status == 'inactive' %}
+                                <span class="badge bg-secondary">禁用</span>
+                            {% elif code.status == 'expired' %}
+                                <span class="badge bg-danger">已过期</span>
+                            {% endif %}
+                        </td>
+                        <td>{{ code.used_count or 0 }}</td>
+                        <td>{{ code.max_uses or '无限制' }}</td>
+                        <td>
+                            {% if code.expires_at %}
+                                {{ code.expires_at.strftime('%Y-%m-%d %H:%M') }}
+                            {% else %}
+                                永不过期
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if code.created_time %}
+                                {% if code.created_time is string %}
+                                    {{ code.created_time[:16] }}
+                                {% else %}
+                                    {{ code.created_time.strftime('%Y-%m-%d %H:%M') }}
+                                {% endif %}
+                            {% else %}
+                                未知
+                            {% endif %}
+                        </td>
+                        <td>
+                            <button class="btn btn-sm btn-outline-primary" onclick="editCode({{ code.id }})">
+                                <i class="fas fa-edit"></i>
+                            </button>
+                            <button class="btn btn-sm btn-outline-danger ms-1" onclick="deleteCode({{ code.id }})">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                            {% if code.status == 'active' %}
+                            <button class="btn btn-sm btn-outline-warning ms-1" onclick="toggleCodeStatus({{ code.id }}, 'inactive')">
+                                <i class="fas fa-pause"></i>
+                            </button>
+                            {% else %}
+                            <button class="btn btn-sm btn-outline-success ms-1" onclick="toggleCodeStatus({{ code.id }}, 'active')">
+                                <i class="fas fa-play"></i>
+                            </button>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="text-center py-5">
+            <i class="fas fa-key fa-3x text-muted mb-3"></i>
+            <h5 class="text-muted">暂无授权码</h5>
+            <p class="text-muted">点击上方"添加授权码"按钮开始创建授权码</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- 添加授权码模态框 -->
+<div class="modal fade" id="addCodeModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title"><i class="fas fa-plus me-2"></i>添加授权码</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="addCodeForm">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="codeValue" class="form-label">授权码 <span class="text-danger">*</span></label>
+                        <div class="input-group">
+                            <input type="text" class="form-control" id="codeValue" name="code" required>
+                            <button type="button" class="btn btn-outline-secondary" onclick="generateCode()">
+                                <i class="fas fa-random"></i> 生成
+                            </button>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="codeDescription" class="form-label">描述</label>
+                        <textarea class="form-control" id="codeDescription" name="description" rows="2" placeholder="可选，描述该授权码的用途"></textarea>
+                    </div>
+                    <div class="mb-3">
+                        <label for="maxUses" class="form-label">最大使用次数</label>
+                        <input type="number" class="form-control" id="maxUses" name="max_uses" min="1" placeholder="留空表示无限制">
+                    </div>
+                    <div class="mb-3">
+                        <label for="expiresAt" class="form-label">过期时间</label>
+                        <input type="datetime-local" class="form-control" id="expiresAt" name="expires_at">
+                        <div class="form-text">留空表示永不过期</div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-save me-2"></i>保存
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- 编辑授权码模态框 -->
+<div class="modal fade" id="editCodeModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title"><i class="fas fa-edit me-2"></i>编辑授权码</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="editCodeForm">
+                <div class="modal-body">
+                    <input type="hidden" id="editCodeId" name="id">
+                    <div class="mb-3">
+                        <label for="editCodeValue" class="form-label">授权码 <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" id="editCodeValue" name="code" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="editCodeDescription" class="form-label">描述</label>
+                        <textarea class="form-control" id="editCodeDescription" name="description" rows="2"></textarea>
+                    </div>
+                    <div class="mb-3">
+                        <label for="editMaxUses" class="form-label">最大使用次数</label>
+                        <input type="number" class="form-control" id="editMaxUses" name="max_uses" min="1">
+                    </div>
+                    <div class="mb-3">
+                        <label for="editExpiresAt" class="form-label">过期时间</label>
+                        <input type="datetime-local" class="form-control" id="editExpiresAt" name="expires_at">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">使用统计</label>
+                        <div class="row">
+                            <div class="col-6">
+                                <div class="card bg-light">
+                                    <div class="card-body text-center">
+                                        <h6 class="card-title">已使用次数</h6>
+                                        <h4 id="editUsedCount" class="text-primary">0</h4>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-6">
+                                <div class="card bg-light">
+                                    <div class="card-body text-center">
+                                        <h6 class="card-title">最后使用时间</h6>
+                                        <small id="editLastUsed" class="text-muted">从未使用</small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-save me-2"></i>保存修改
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+.page-header {
+    margin-bottom: 2rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid #eee;
+}
+
+.table th {
+    background-color: #f8f9fa;
+    border-top: none;
+    font-weight: 600;
+}
+
+.table-hover tbody tr:hover {
+    background-color: rgba(0,123,255,0.05);
+}
+
+.code-item {
+    transition: all 0.2s ease;
+}
+
+.badge {
+    font-size: 0.75rem;
+}
+
+code {
+    font-family: 'Courier New', monospace;
+    font-size: 0.9rem;
+}
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// 搜索和筛选功能
+document.getElementById('searchInput').addEventListener('input', filterCodes);
+document.getElementById('statusFilter').addEventListener('change', filterCodes);
+
+function filterCodes() {
+    const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+    const statusFilter = document.getElementById('statusFilter').value;
+    const codeItems = document.querySelectorAll('.code-item');
+    
+    codeItems.forEach(item => {
+        const code = item.getAttribute('data-code');
+        const status = item.getAttribute('data-status');
+        
+        const matchesSearch = code.includes(searchTerm);
+        const matchesStatus = !statusFilter || status === statusFilter;
+        
+        if (matchesSearch && matchesStatus) {
+            item.style.display = 'table-row';
+        } else {
+            item.style.display = 'none';
+        }
+    });
+}
+
+// 生成随机授权码
+function generateCode() {
+    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+    let result = '';
+    for (let i = 0; i < 8; i++) {
+        result += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    document.getElementById('codeValue').value = result;
+}
+
+function generateRandomCode() {
+    generateCode();
+    new bootstrap.Modal(document.getElementById('addCodeModal')).show();
+}
+
+// 复制到剪贴板
+function copyToClipboard(text) {
+    navigator.clipboard.writeText(text).then(() => {
+        showAlert('success', '授权码已复制到剪贴板');
+    }).catch(() => {
+        showAlert('warning', '复制失败，请手动复制');
+    });
+}
+
+// 添加授权码
+document.getElementById('addCodeForm').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    
+    const formData = new FormData(this);
+    const data = Object.fromEntries(formData);
+    
+    try {
+        const response = await fetch('{{ url_for("add_access_code") }}', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(data)
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            showAlert('success', result.message);
+            setTimeout(() => location.reload(), 1500);
+        } else {
+            showAlert('danger', result.message);
+        }
+    } catch (error) {
+        showAlert('danger', '添加失败：' + error.message);
+    }
+});
+
+// 编辑授权码
+function editCode(id) {
+    fetch(`{{ url_for("get_access_code") }}?id=${id}`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                const code = data.data;
+                document.getElementById('editCodeId').value = code.id;
+                document.getElementById('editCodeValue').value = code.code;
+                document.getElementById('editCodeDescription').value = code.description || '';
+                document.getElementById('editMaxUses').value = code.max_uses || '';
+                document.getElementById('editUsedCount').textContent = code.used_count || 0;
+                document.getElementById('editLastUsed').textContent = code.last_used_at || '从未使用';
+                
+                if (code.expires_at) {
+                    const date = new Date(code.expires_at);
+                    document.getElementById('editExpiresAt').value = date.toISOString().slice(0, 16);
+                }
+                
+                new bootstrap.Modal(document.getElementById('editCodeModal')).show();
+            }
+        });
+}
+
+// 保存编辑
+document.getElementById('editCodeForm').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    
+    const formData = new FormData(this);
+    const data = Object.fromEntries(formData);
+    
+    try {
+        const response = await fetch('{{ url_for("update_access_code") }}', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(data)
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            showAlert('success', result.message);
+            setTimeout(() => location.reload(), 1500);
+        } else {
+            showAlert('danger', result.message);
+        }
+    } catch (error) {
+        showAlert('danger', '更新失败：' + error.message);
+    }
+});
+
+// 删除授权码
+function deleteCode(id) {
+    if (confirm('确定要删除这个授权码吗？此操作不可恢复。')) {
+        fetch('{{ url_for("delete_access_code") }}', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({id: id})
+        })
+        .then(response => response.json())
+        .then(result => {
+            if (result.success) {
+                showAlert('success', result.message);
+                setTimeout(() => location.reload(), 1500);
+            } else {
+                showAlert('danger', result.message);
+            }
+        });
+    }
+}
+
+// 切换授权码状态
+function toggleCodeStatus(id, status) {
+    const action = status === 'active' ? '启用' : '禁用';
+    if (confirm(`确定要${action}这个授权码吗？`)) {
+        fetch('{{ url_for("toggle_access_code_status") }}', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({id: id, status: status})
+        })
+        .then(response => response.json())
+        .then(result => {
+            if (result.success) {
+                showAlert('success', result.message);
+                setTimeout(() => location.reload(), 1500);
+            } else {
+                showAlert('danger', result.message);
+            }
+        });
+    }
+}
+
+// 显示提示信息
+function showAlert(type, message) {
+    const alertDiv = document.createElement('div');
+    alertDiv.className = `alert alert-${type} alert-dismissible fade show position-fixed`;
+    alertDiv.style.cssText = 'top: 20px; right: 20px; z-index: 9999; min-width: 300px;';
+    alertDiv.innerHTML = `
+        ${message}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    `;
+    
+    document.body.appendChild(alertDiv);
+    
+    setTimeout(() => {
+        if (alertDiv.parentNode) {
+            alertDiv.parentNode.removeChild(alertDiv);
+        }
+    }, 5000);
+}
+</script>
+{% endblock %}

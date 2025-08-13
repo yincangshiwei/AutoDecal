@@ -1,0 +1,402 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}后台管理{% endblock %} - 产品印花平台</title>
+    
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    
+    <style>
+        :root {
+            --primary-color: #1976d2;
+            --secondary-color: #424242;
+            --success-color: #4caf50;
+            --warning-color: #ff9800;
+            --danger-color: #f44336;
+            --sidebar-width: 250px;
+        }
+        
+        body {
+            font-family: 'Microsoft YaHei', Arial, sans-serif;
+            background-color: #f5f5f5;
+        }
+        
+        .sidebar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            height: 100vh;
+            width: var(--sidebar-width);
+            background: linear-gradient(135deg, var(--primary-color), #1565c0);
+            color: white;
+            z-index: 1000;
+            overflow-y: auto;
+        }
+        
+        .sidebar .logo {
+            padding: 20px;
+            text-align: center;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+        }
+        
+        .sidebar .logo h4 {
+            margin: 0;
+            font-weight: 600;
+        }
+        
+        .sidebar .nav-menu {
+            padding: 20px 0;
+        }
+        
+        .sidebar .nav-item {
+            margin: 5px 15px;
+        }
+        
+        .sidebar .nav-link {
+            color: rgba(255,255,255,0.8);
+            padding: 12px 20px;
+            border-radius: 8px;
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            transition: all 0.3s ease;
+        }
+        
+        .sidebar .nav-link:hover,
+        .sidebar .nav-link.active {
+            background: rgba(255,255,255,0.1);
+            color: white;
+            transform: translateX(5px);
+        }
+        
+        .sidebar .nav-link i {
+            width: 20px;
+            margin-right: 10px;
+        }
+        
+        .main-content {
+            margin-left: var(--sidebar-width);
+            min-height: 100vh;
+        }
+        
+        .top-navbar {
+            background: white;
+            padding: 15px 30px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            display: flex;
+            justify-content: between;
+            align-items: center;
+        }
+        
+        .content-area {
+            padding: 30px;
+        }
+        
+        .page-header {
+            margin-bottom: 30px;
+        }
+        
+        .page-header h1 {
+            color: var(--secondary-color);
+            font-size: 2rem;
+            font-weight: 600;
+            margin: 0;
+        }
+        
+        .page-header .breadcrumb {
+            background: none;
+            padding: 0;
+            margin: 5px 0 0 0;
+        }
+        
+        .card {
+            border: none;
+            border-radius: 12px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        
+        .card-header {
+            background: linear-gradient(45deg, var(--primary-color), #42a5f5);
+            color: white;
+            border-radius: 12px 12px 0 0 !important;
+            padding: 15px 20px;
+        }
+        
+        .card-header h5 {
+            margin: 0;
+            font-weight: 600;
+        }
+        
+        .btn-primary {
+            background: linear-gradient(45deg, var(--primary-color), #42a5f5);
+            border: none;
+            border-radius: 8px;
+            padding: 10px 20px;
+            font-weight: 500;
+        }
+        
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(25, 118, 210, 0.3);
+        }
+        
+        .btn-danger {
+            background: linear-gradient(45deg, var(--danger-color), #e57373);
+            border: none;
+            border-radius: 8px;
+        }
+        
+        .btn-success {
+            background: linear-gradient(45deg, var(--success-color), #81c784);
+            border: none;
+            border-radius: 8px;
+        }
+        
+        .table {
+            border-radius: 8px;
+            overflow: hidden;
+        }
+        
+        .table thead th {
+            background: var(--primary-color);
+            color: white;
+            border: none;
+            font-weight: 500;
+        }
+        
+        .table tbody tr:hover {
+            background-color: rgba(25, 118, 210, 0.05);
+        }
+        
+        .alert {
+            border: none;
+            border-radius: 8px;
+            padding: 15px 20px;
+        }
+        
+        .form-control, .form-select {
+            border-radius: 8px;
+            border: 2px solid #e1e5e9;
+            padding: 12px 15px;
+        }
+        
+        .form-control:focus, .form-select:focus {
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(25, 118, 210, 0.1);
+        }
+        
+        .modal-content {
+            border-radius: 12px;
+            border: none;
+        }
+        
+        .modal-header {
+            background: linear-gradient(45deg, var(--primary-color), #42a5f5);
+            color: white;
+            border-radius: 12px 12px 0 0;
+        }
+        
+        .stats-card {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        
+        .stats-card h3 {
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin: 0;
+        }
+        
+        .stats-card p {
+            margin: 5px 0 0 0;
+            opacity: 0.9;
+        }
+        
+        @media (max-width: 768px) {
+            .sidebar {
+                transform: translateX(-100%);
+                transition: transform 0.3s ease;
+            }
+            
+            .sidebar.show {
+                transform: translateX(0);
+            }
+            
+            .main-content {
+                margin-left: 0;
+            }
+            
+            .content-area {
+                padding: 15px;
+            }
+        }
+    </style>
+    
+    {% block extra_css %}{% endblock %}
+</head>
+<body>
+    <!-- 侧边栏 -->
+    <div class="sidebar">
+        <div class="logo">
+            <h4><i class="fas fa-palette"></i> 印花平台</h4>
+            <small>后台管理系统</small>
+        </div>
+        
+        <nav class="nav-menu">
+            <div class="nav-item">
+                    <a href="{{ url_for('index') }}" class="nav-link {% if request.endpoint == 'index' %}active{% endif %}">
+                    <i class="fas fa-tachometer-alt"></i>
+                    <span>仪表盘</span>
+                </a>
+            </div>
+            
+            <div class="nav-item">
+                <a href="{{ url_for('patterns') }}" class="nav-link {% if request.endpoint == 'patterns' %}active{% endif %}">
+                    <i class="fas fa-images"></i>
+                    印花图案
+                </a>
+            </div>
+            <div class="nav-item">
+                <a href="{{ url_for('products') }}" class="nav-link {% if request.endpoint == 'products' %}active{% endif %}">
+                    <i class="fas fa-box"></i>
+                    产品管理
+                </a>
+            </div>
+            <div class="nav-item">
+                <a href="{{ url_for('categories') }}" class="nav-link {% if request.endpoint == 'categories' %}active{% endif %}">
+                    <i class="fas fa-folder"></i>
+                    分类管理
+                </a>
+            </div>
+            <div class="nav-item">
+                <a href="{{ url_for('access_codes') }}" class="nav-link {% if request.endpoint == 'access_codes' %}active{% endif %}">
+                    <i class="fas fa-key"></i>
+                    授权码管理
+                </a>
+            </div>
+            <div class="nav-item">
+                <a href="{{ url_for('themes') }}" class="nav-link {% if request.endpoint == 'themes' %}active{% endif %}">
+                    <i class="fas fa-paint-brush"></i>
+                    主题管理
+                </a>
+            </div>
+            <div class="nav-item">
+                <a href="{{ url_for('users') }}" class="nav-link {% if request.endpoint == 'users' %}active{% endif %}">
+                    <i class="fas fa-users"></i>
+                    用户管理
+                </a>
+            </div>
+            <div class="nav-item">
+                <a href="{{ url_for('logout') }}" class="nav-link">
+                    <i class="fas fa-sign-out-alt"></i>
+                    退出登录
+                </a>
+            </div>
+            
+            <hr style="border-color: rgba(255,255,255,0.1); margin: 20px 15px;">
+            
+            <div class="nav-item">
+                <a href="http://localhost:5000" class="nav-link" target="_blank">
+                    <i class="fas fa-external-link-alt"></i>
+                    <span>前台界面</span>
+                </a>
+            </div>
+            
+            <div class="nav-item">
+                <a href="{{ url_for('logout') }}" class="nav-link">
+                    <i class="fas fa-sign-out-alt"></i>
+                    <span>退出登录</span>
+                </a>
+            </div>
+        </nav>
+    </div>
+    
+    <!-- 主内容区域 -->
+    <div class="main-content">
+        <!-- 顶部导航栏 -->
+        <div class="top-navbar">
+            <div class="d-flex align-items-center">
+                <button class="btn btn-link d-md-none" id="sidebar-toggle">
+                    <i class="fas fa-bars"></i>
+                </button>
+                <span class="ms-2">欢迎，{{ session.admin_username or 'Admin' }}</span>
+            </div>
+            
+            <div class="d-flex align-items-center">
+                <span class="text-muted me-3">
+                    <i class="fas fa-clock"></i>
+                    <span id="current-time"></span>
+                </span>
+                <a href="{{ url_for('logout') }}" class="btn btn-outline-danger btn-sm">
+                    <i class="fas fa-sign-out-alt"></i> 退出
+                </a>
+            </div>
+        </div>
+        
+        <!-- 内容区域 -->
+        <div class="content-area">
+            <!-- 消息提示 -->
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    {% for category, message in messages %}
+                        <div class="alert alert-{{ 'danger' if category == 'error' else category }} alert-dismissible fade show" role="alert">
+                            {{ message }}
+                            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                        </div>
+                    {% endfor %}
+                {% endif %}
+            {% endwith %}
+            
+            {% block content %}{% endblock %}
+        </div>
+    </div>
+    
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <script>
+        // 更新当前时间
+        function updateTime() {
+            const now = new Date();
+            const timeString = now.toLocaleString('zh-CN');
+            document.getElementById('current-time').textContent = timeString;
+        }
+        
+        updateTime();
+        setInterval(updateTime, 1000);
+        
+        // 移动端侧边栏切换
+        document.getElementById('sidebar-toggle')?.addEventListener('click', function() {
+            document.querySelector('.sidebar').classList.toggle('show');
+        });
+        
+        // 全局AJAX错误处理
+        function showMessage(message, type = 'info') {
+            const alertDiv = document.createElement('div');
+            alertDiv.className = `alert alert-${type} alert-dismissible fade show`;
+            alertDiv.innerHTML = `
+                ${message}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            `;
+            
+            const contentArea = document.querySelector('.content-area');
+            contentArea.insertBefore(alertDiv, contentArea.firstChild);
+            
+            // 自动消失
+            setTimeout(() => {
+                alertDiv.remove();
+            }, 5000);
+        }
+    </script>
+    
+    {% block extra_js %}{% endblock %}
+</body>
+</html>
