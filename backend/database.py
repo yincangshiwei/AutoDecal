@@ -80,6 +80,92 @@ def init_database():
         )
     ''')
     
+    # 创建授权码访问记录表
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS access_logs (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            session_id TEXT NOT NULL,
+            access_code TEXT NOT NULL,
+            ip_address TEXT,
+            location TEXT,
+            browser TEXT,
+            operating_system TEXT,
+            login_time DATETIME DEFAULT CURRENT_TIMESTAMP,
+            last_activity DATETIME DEFAULT CURRENT_TIMESTAMP,
+            is_active BOOLEAN DEFAULT 1,
+            logout_time DATETIME,
+            FOREIGN KEY (access_code) REFERENCES access_codes (code)
+        )
+    ''')
+"""
+数据库操作类
+处理SQLite数据库的创建、连接和基础操作
+"""
+import sqlite3
+import os
+from datetime import datetime
+from typing import List, Optional, Dict, Any
+from .models import Pattern, ProductCategory, Product, AccessCode, User, ThemeTemplate
+
+DATABASE_PATH = 'database.db'
+
+def get_db_connection():
+    """获取数据库连接"""
+    conn = sqlite3.connect(DATABASE_PATH)
+    conn.row_factory = sqlite3.Row
+    return conn
+
+def init_database():
+    """初始化数据库表结构"""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    
+    # 创建印花图案表
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS patterns (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT NOT NULL,
+            filename TEXT NOT NULL,
+            file_path TEXT NOT NULL,
+            upload_time DATETIME DEFAULT CURRENT_TIMESTAMP,
+            file_size INTEGER DEFAULT 0,
+            image_width INTEGER DEFAULT 0,
+            image_height INTEGER DEFAULT 0,
+            is_active BOOLEAN DEFAULT 1
+        )
+    ''')
+    
+    # 创建产品分类表
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS product_categories (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT NOT NULL UNIQUE,
+            is_default BOOLEAN DEFAULT 0,
+            sort_order INTEGER DEFAULT 0,
+            is_active BOOLEAN DEFAULT 1,
+            created_time DATETIME DEFAULT CURRENT_TIMESTAMP
+        )
+    ''')
+    
+    # 创建产品表
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS products (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            title TEXT NOT NULL,
+            category_id INTEGER NOT NULL,
+            product_image TEXT NOT NULL,
+            depth_image TEXT NOT NULL,
+            product_image_path TEXT NOT NULL,
+            depth_image_path TEXT NOT NULL,
+            upload_time DATETIME DEFAULT CURRENT_TIMESTAMP,
+            image_width INTEGER DEFAULT 0,
+            image_height INTEGER DEFAULT 0,
+            is_active BOOLEAN DEFAULT 1,
+            FOREIGN KEY (category_id) REFERENCES product_categories (id)
+        )
+    ''')
+    
+    
     # 检查并添加新字段（用于数据库升级）
     try:
         cursor.execute("ALTER TABLE access_codes ADD COLUMN expires_at DATETIME")
@@ -449,6 +535,70 @@ class DatabaseManager:
         """增加授权码使用次数"""
         query = "UPDATE access_codes SET used_count = used_count + 1 WHERE code = ?"
         return DatabaseManager.execute_update(query, (code,))
+    
+    # 访问记录相关操作
+    @staticmethod
+    def add_access_log(session_id: str, access_code: str, ip_address: str, 
+                      location: str, browser: str, operating_system: str) -> int:
+        """添加访问记录"""
+        query = '''
+            INSERT INTO access_logs 
+            (session_id, access_code, ip_address, location, browser, operating_system)
+            VALUES (?, ?, ?, ?, ?, ?)
+        '''
+        return DatabaseManager.execute_insert(query, (
+            session_id, access_code, ip_address, location, browser, operating_system
+        ))
+    
+    @staticmethod
+    def get_access_logs(access_code: str = None, active_only: bool = False) -> List[Dict[str, Any]]:
+        """获取访问记录列表"""
+        query = '''
+            SELECT al.*, ac.description as code_description
+            FROM access_logs al
+            LEFT JOIN access_codes ac ON al.access_code = ac.code
+        '''
+        params = []
+        conditions = []
+        
+        if access_code:
+            conditions.append("al.access_code = ?")
+            params.append(access_code)
+        
+        if active_only:
+            conditions.append("al.is_active = 1")
+        
+        if conditions:
+            query += " WHERE " + " AND ".join(conditions)
+        
+        query += " ORDER BY al.login_time DESC"
+        return DatabaseManager.execute_query(query, tuple(params))
+    
+    @staticmethod
+    def update_access_log_activity(session_id: str) -> int:
+        """更新访问记录的最后活动时间"""
+        query = "UPDATE access_logs SET last_activity = datetime('now') WHERE session_id = ? AND is_active = 1"
+        return DatabaseManager.execute_update(query, (session_id,))
+    
+    @staticmethod
+    def logout_access_log(session_id: str) -> int:
+        """登出访问记录"""
+        query = '''
+            UPDATE access_logs 
+            SET is_active = 0, logout_time = datetime('now') 
+            WHERE session_id = ? AND is_active = 1
+        '''
+        return DatabaseManager.execute_update(query, (session_id,))
+    
+    @staticmethod
+    def force_logout_access_log(log_id: int) -> int:
+        """强制登出指定的访问记录"""
+        query = '''
+            UPDATE access_logs 
+            SET is_active = 0, logout_time = datetime('now') 
+            WHERE id = ?
+        '''
+        return DatabaseManager.execute_update(query, (log_id,))
 
     # 用户相关操作
     @staticmethod

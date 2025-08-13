@@ -8,6 +8,17 @@ class DataManager {
     static async fetchAPI(url) {
         try {
             const response = await fetch(url);
+            
+            // 检查会话是否失效
+            if (response.status === 401) {
+                const result = await response.json();
+                if (result.redirect) {
+                    alert(result.message || '会话已失效，请重新登录');
+                    window.location.href = result.redirect;
+                    return [];
+                }
+            }
+            
             const result = await response.json();
             
             console.log(`API ${url} 返回:`, result);

@@ -234,7 +234,7 @@ def access_code_required(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
         # 检查会话中是否有有效的访问授权码
-        if 'access_code_validated' in session:
+        if 'access_code_validated' in session and session.get('access_code_validated'):
             return f(*args, **kwargs)
         
         # 检查请求中的访问授权码
@@ -245,7 +245,11 @@ def access_code_required(f):
             session['access_code'] = access_code
             return f(*args, **kwargs)
         
-        return jsonify({'error': '需要有效的访问授权码'}), 403
+        return jsonify({
+            'success': False,
+            'error': '需要有效的访问授权码',
+            'message': '请先通过授权码验证'
+        }), 403
     
     return decorated_function
 

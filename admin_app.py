@@ -657,6 +657,52 @@ def delete_category():
     except Exception as e:
         return jsonify({'success': False, 'message': f'删除失败: {str(e)}'})
 
+# 授权码访问管理
+@app.route('/access-logs')
+@login_required
+def access_logs():
+    """授权码访问记录管理页面"""
+    try:
+        access_logs = DatabaseManager.get_access_logs() or []
+    except Exception as e:
+        print(f"获取访问记录失败: {e}")
+        access_logs = []
+    return render_template('admin/access_logs.html', access_logs=access_logs)
+
+@app.route('/access-logs/force-logout', methods=['POST'])
+@login_required
+def force_logout_access():
+    """强制登出指定的访问记录"""
+    try:
+        data = request.get_json()
+        log_id = data.get('id')
+        
+        if not log_id:
+            return jsonify({'success': False, 'message': '缺少访问记录ID'})
+        
+        result = DatabaseManager.force_logout_access_log(log_id)
+        
+        if result > 0:
+            return jsonify({'success': True, 'message': '强制登出成功！'})
+        else:
+            return jsonify({'success': False, 'message': '访问记录不存在或已登出'})
+    except Exception as e:
+        return jsonify({'success': False, 'message': f'操作失败: {str(e)}'})
+
+@app.route('/access-logs/get-by-code')
+@login_required
+def get_access_logs_by_code():
+    """根据授权码获取访问记录"""
+    try:
+        access_code = request.args.get('code')
+        if not access_code:
+            return jsonify({'success': False, 'message': '缺少授权码参数'})
+        
+        logs = DatabaseManager.get_access_logs(access_code=access_code)
+        return jsonify({'success': True, 'data': logs})
+    except Exception as e:
+        return jsonify({'success': False, 'message': f'获取失败: {str(e)}'})
+
 # 授权码管理
 @app.route('/access-codes')
 @login_required

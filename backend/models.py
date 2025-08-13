@@ -81,3 +81,18 @@ class ThemeTemplate:
     is_default: bool = False
     is_active: bool = True
     created_time: Optional[datetime] = None
+
+@dataclass
+class AccessLog:
+    """访问记录模型"""
+    id: Optional[int] = None
+    session_id: str = ""
+    access_code: str = ""
+    ip_address: str = ""
+    location: str = ""
+    browser: str = ""
+    operating_system: str = ""
+    login_time: Optional[datetime] = None
+    last_activity: Optional[datetime] = None
+    is_active: bool = True
+    logout_time: Optional[datetime] = None
