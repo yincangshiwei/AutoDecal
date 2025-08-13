@@ -36,8 +36,11 @@ app.register_blueprint(api_bp, url_prefix='/api')
 
 @app.route('/')
 def home():
-    """首页 - 选择界面"""
-    return render_template('home.html')
+    """首页 - 直接跳转到印花编辑器"""
+    # 检查是否已通过授权码验证
+    if 'access_code_validated' not in session:
+        return redirect(url_for('access_code_login', redirect_to='pattern_editor'))
+    return redirect(url_for('pattern_editor'))
 
 @app.route('/design')
 def design():
