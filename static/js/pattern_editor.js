@@ -615,7 +615,9 @@ window.addEventListener('load', () => {
             list.forEach(item => {
                 const opt = document.createElement('option');
                 opt.value = item.url;
-                opt.textContent = item.name;
+                // 只显示文件名，不显示扩展名
+                const nameWithoutExt = item.name.replace(/\.[^/.]+$/, "");
+                opt.textContent = nameWithoutExt;
                 bgSelect.appendChild(opt);
             });
 
