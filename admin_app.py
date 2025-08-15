@@ -711,6 +711,22 @@ def get_access_logs_by_code():
     except Exception as e:
         return jsonify({'success': False, 'message': f'获取失败: {str(e)}'})
 
+@app.route('/access-logs/clear-offline', methods=['POST'])
+@login_required
+def clear_offline_access_logs():
+    """清空已离线的访问记录"""
+    try:
+        # 删除状态为已离线的访问记录（is_active = 0 表示已离线）
+        query = "DELETE FROM access_logs WHERE is_active = 0"
+        result = DatabaseManager.execute_update(query)
+        
+        return jsonify({
+            'success': True,
+            'message': f'已清空 {result} 条离线访问记录'
+        })
+    except Exception as e:
+        return jsonify({'success': False, 'message': f'清空失败: {str(e)}'})
+
 # 授权码管理
 @app.route('/access-codes')
 @login_required

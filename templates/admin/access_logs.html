@@ -24,8 +24,12 @@
             </select>
             <select class="form-select" id="codeFilter">
                 <option value="">所有授权码</option>
+                {% set unique_codes = [] %}
                 {% for log in access_logs %}
-                    <option value="{{ log.access_code }}">{{ log.access_code }}</option>
+                    {% if log.access_code not in unique_codes %}
+                        {% set _ = unique_codes.append(log.access_code) %}
+                        <option value="{{ log.access_code }}">{{ log.access_code }}</option>
+                    {% endif %}
                 {% endfor %}
             </select>
         </div>
@@ -42,8 +46,16 @@
 
 <!-- 访问记录列表 -->
 <div class="card">
-    <div class="card-header">
+    <div class="card-header d-flex justify-content-between align-items-center">
         <h5><i class="fas fa-list me-2"></i>访问记录列表 ({{ access_logs|length }} 条)</h5>
+        <div>
+            <button class="btn btn-outline-danger btn-sm me-2" onclick="clearOfflineLogs()">
+                <i class="fas fa-trash me-1"></i>清空离线记录
+            </button>
+            <button class="btn btn-outline-primary btn-sm" onclick="refreshLogs()">
+                <i class="fas fa-sync-alt me-1"></i>刷新
+            </button>
+        </div>
     </div>
     <div class="card-body">
         {% if access_logs %}
@@ -334,6 +346,34 @@ function forceLogout(logId) {
     }
 }
 
+// 清空离线记录
+function clearOfflineLogs() {
+    if (confirm('确定要清空所有已离线的访问记录吗？此操作不可恢复。')) {
+        fetch('{{ url_for("clear_offline_access_logs") }}', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            }
+        })
+        .then(response => response.json())
+        .then(result => {
+            if (result.success) {
+                showAlert('success', result.message);
+                setTimeout(() => location.reload(), 1500);
+            } else {
+                showAlert('danger', result.message);
+            }
+        })
+        .catch(error => {
+            showAlert('danger', '清空失败：' + error.message);
+        });
+    }
+}
+
+// 刷新页面
+function refreshLogs() {
+    location.reload();
+}
 
 // 显示提示信息
 function showAlert(type, message) {
