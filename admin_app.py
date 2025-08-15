@@ -155,9 +155,13 @@ def add_pattern():
             return jsonify({'success': False, 'message': '请选择图片文件'})
         
         # 保存文件
-        filename = secure_filename(file.filename)
+        original_filename = file.filename
+        # 获取文件扩展名
+        file_ext = os.path.splitext(original_filename)[1].lower()
+        # 使用secure_filename处理文件名，但保留扩展名
+        safe_name = secure_filename(os.path.splitext(original_filename)[0])
         timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-        filename = f"pattern_{timestamp}_{filename}"
+        filename = f"pattern_{timestamp}_{safe_name}{file_ext}"
         
         upload_path = os.path.join('uploads', 'patterns')
         os.makedirs(upload_path, exist_ok=True)
@@ -232,9 +236,13 @@ def update_pattern():
             old_pattern = DatabaseManager.execute_query(query, (pattern_id,))
             
             # 保存新文件
-            filename = secure_filename(file.filename)
+            original_filename = file.filename
+            # 获取文件扩展名
+            file_ext = os.path.splitext(original_filename)[1].lower()
+            # 使用secure_filename处理文件名，但保留扩展名
+            safe_name = secure_filename(os.path.splitext(original_filename)[0])
             timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-            filename = f"pattern_{timestamp}_{filename}"
+            filename = f"pattern_{timestamp}_{safe_name}{file_ext}"
             
             upload_path = os.path.join('uploads', 'patterns')
             os.makedirs(upload_path, exist_ok=True)
