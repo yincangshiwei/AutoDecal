@@ -1,0 +1,475 @@
+{% extends "admin/base.html" %}
+
+{% block title %}主题背景图管理{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1><i class="fas fa-image me-3"></i>主题背景图管理</h1>
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{{ url_for('index') }}">仪表盘</a></li>
+            <li class="breadcrumb-item active">主题背景图管理</li>
+        </ol>
+    </nav>
+</div>
+
+<!-- 操作按钮 -->
+<div class="row mb-4">
+    <div class="col-md-6">
+        <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addBackgroundModal">
+            <i class="fas fa-plus me-2"></i>添加背景图
+        </button>
+        <button type="button" class="btn btn-danger ms-2" onclick="clearAllBackgrounds()">
+            <i class="fas fa-trash me-2"></i>清空所有背景图
+        </button>
+    </div>
+    <div class="col-md-6">
+        <div class="input-group">
+            <select class="form-select" id="themeFilter">
+                <option value="">所有主题</option>
+                {% for theme in themes %}
+                <option value="{{ theme }}">{{ theme }}</option>
+                {% endfor %}
+            </select>
+            <input type="text" class="form-control" id="searchInput" placeholder="搜索背景图名称...">
+            <button class="btn btn-outline-secondary" type="button">
+                <i class="fas fa-search"></i>
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- 背景图列表 -->
+<div class="card">
+    <div class="card-header">
+        <h5><i class="fas fa-list me-2"></i>背景图列表 ({{ backgrounds|length }} 个)</h5>
+    </div>
+    <div class="card-body">
+        {% if backgrounds %}
+        <div class="row" id="backgroundsGrid">
+            {% for bg in backgrounds %}
+            <div class="col-lg-2 col-md-3 col-sm-4 col-6 mb-4 background-item" data-name="{{ bg.background_name|lower }}" data-theme="{{ bg.theme_name }}">
+                <div class="card background-card">
+                    <div class="background-image-container">
+                        <img src="{{ bg.file_path }}" 
+                             class="card-img-top background-image" alt="{{ bg.background_name }}"
+                             onerror="this.src='{{ url_for('static', filename='images/no-image.png') }}'">
+                        <div class="background-overlay">
+                            <button class="btn btn-sm btn-primary" onclick="editBackground({{ bg.id }})">
+                                <i class="fas fa-edit"></i>
+                            </button>
+                            <button class="btn btn-sm btn-danger" onclick="deleteBackground({{ bg.id }})">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                            <button class="btn btn-sm btn-info" onclick="previewBackground('{{ bg.file_path }}', '{{ bg.background_name }}')">
+                                <i class="fas fa-eye"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <h6 class="card-title">{{ bg.background_name }}</h6>
+                        <div class="background-info">
+                            <small class="text-muted">
+                                <i class="fas fa-palette me-1"></i>{{ bg.theme_name }}
+                            </small>
+                            <br>
+                            <small class="text-muted">
+                                <i class="fas fa-file-image me-1"></i>{{ "%.1f"|format(bg.file_size / 1024) }} KB
+                            </small>
+                            <br>
+                            <small class="text-muted">
+                                <i class="fas fa-clock me-1"></i>
+                                {% if bg.upload_time %}
+                                    {% if bg.upload_time is string %}
+                                        {{ bg.upload_time[:10] }}
+                                    {% else %}
+                                        {{ bg.upload_time.strftime('%Y-%m-%d') }}
+                                    {% endif %}
+                                {% else %}
+                                    未知
+                                {% endif %}
+                            </small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="text-center py-5">
+            <i class="fas fa-image fa-3x text-muted mb-3"></i>
+            <h5 class="text-muted">暂无背景图</h5>
+            <p class="text-muted">点击上方"添加背景图"按钮开始添加背景图</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- 添加背景图模态框 -->
+<div class="modal fade" id="addBackgroundModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title"><i class="fas fa-plus me-2"></i>添加背景图</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="addBackgroundForm" enctype="multipart/form-data">
+                <div class="modal-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="backgroundName" class="form-label">背景图名称 <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control" id="backgroundName" name="background_name" required
+                                       placeholder="例如: 温馨圣诞夜">
+                            </div>
+                            <div class="mb-3">
+                                <label for="themeName" class="form-label">主题 <span class="text-danger">*</span></label>
+                                <select class="form-select" id="themeName" name="theme_name" required>
+                                    <option value="">请选择主题</option>
+                                    {% for theme in themes %}
+                                    <option value="{{ theme }}">{{ theme }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="mb-3">
+                                <label for="backgroundFile" class="form-label">选择图片 <span class="text-danger">*</span></label>
+                                <input type="file" class="form-control" id="backgroundFile" name="file" 
+                                       accept="image/*" required onchange="previewImage(this, 'imagePreview')">
+                                <div class="form-text">支持 JPG、PNG、WEBP 格式，建议尺寸 2560x1440</div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3" id="imagePreview" style="display: none;">
+                                <label class="form-label">图片预览</label>
+                                <div class="text-center">
+                                    <img id="previewImg" src="" alt="预览" style="max-width: 100%; max-height: 300px; border-radius: 8px;">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-save me-2"></i>保存
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- 编辑背景图模态框 -->
+<div class="modal fade" id="editBackgroundModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title"><i class="fas fa-edit me-2"></i>编辑背景图</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="editBackgroundForm">
+                <div class="modal-body">
+                    <input type="hidden" id="editBackgroundId" name="id">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="editBackgroundName" class="form-label">背景图名称 <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control" id="editBackgroundName" name="background_name" required>
+                            </div>
+                            <div class="mb-3">
+                                <label for="editThemeName" class="form-label">主题 <span class="text-danger">*</span></label>
+                                <select class="form-select" id="editThemeName" name="theme_name" required>
+                                    <option value="">请选择主题</option>
+                                    {% for theme in themes %}
+                                    <option value="{{ theme }}">{{ theme }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">当前背景图</label>
+                                <div class="text-center">
+                                    <img id="editImagePreview" src="" alt="当前背景图" style="max-width: 100%; max-height: 200px; border-radius: 8px; margin-bottom: 10px;">
+                                </div>
+                            </div>
+                            <div class="mb-3">
+                                <label for="editBackgroundFile" class="form-label">更换图片</label>
+                                <input type="file" class="form-control" id="editBackgroundFile" name="file" accept="image/*">
+                                <div class="form-text">如不重新上传，将保持原有图片</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-save me-2"></i>保存修改
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- 预览模态框 -->
+<div class="modal fade" id="previewModal" tabindex="-1">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title"><i class="fas fa-eye me-2"></i>背景图预览</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body text-center">
+                <img id="previewImage" src="" alt="" class="img-fluid" style="max-height: 70vh; border-radius: 8px;">
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+.background-card {
+    transition: all 0.3s ease;
+    border: none;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+}
+
+.background-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 5px 20px rgba(0,0,0,0.15);
+}
+
+.background-image-container {
+    position: relative;
+    overflow: hidden;
+    aspect-ratio: 16/9;
+    width: 100%;
+}
+
+.background-image {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: transform 0.3s ease;
+}
+
+.background-card:hover .background-image {
+    transform: scale(1.05);
+}
+
+.background-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0,0,0,0.7);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.background-card:hover .background-overlay {
+    opacity: 1;
+}
+
+.background-info {
+    font-size: 0.85rem;
+}
+
+.page-header {
+    margin-bottom: 2rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid #eee;
+}
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// 图片预览
+function previewImage(input, previewId) {
+    if (input.files && input.files[0]) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            document.getElementById('previewImg').src = e.target.result;
+            document.getElementById('imagePreview').style.display = 'block';
+        };
+        reader.readAsDataURL(input.files[0]);
+    }
+}
+
+// 搜索和筛选功能
+document.getElementById('searchInput').addEventListener('input', filterBackgrounds);
+document.getElementById('themeFilter').addEventListener('change', filterBackgrounds);
+
+function filterBackgrounds() {
+    const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+    const themeFilter = document.getElementById('themeFilter').value;
+    const backgroundItems = document.querySelectorAll('.background-item');
+    
+    backgroundItems.forEach(item => {
+        const name = item.getAttribute('data-name');
+        const theme = item.getAttribute('data-theme');
+        
+        const matchesSearch = name.includes(searchTerm);
+        const matchesTheme = !themeFilter || theme === themeFilter;
+        
+        if (matchesSearch && matchesTheme) {
+            item.style.display = 'block';
+        } else {
+            item.style.display = 'none';
+        }
+    });
+}
+
+// 添加背景图
+document.getElementById('addBackgroundForm').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    
+    const formData = new FormData(this);
+    
+    try {
+        const response = await fetch('/theme-backgrounds/upload', {
+            method: 'POST',
+            body: formData
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            showAlert('success', result.message);
+            setTimeout(() => location.reload(), 1500);
+        } else {
+            showAlert('danger', result.message);
+        }
+    } catch (error) {
+        showAlert('danger', '添加失败：' + error.message);
+    }
+});
+
+// 编辑背景图
+function editBackground(id) {
+    fetch(`/theme-backgrounds/get?id=${id}`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                const bg = data.data;
+                document.getElementById('editBackgroundId').value = bg.id;
+                document.getElementById('editBackgroundName').value = bg.background_name;
+                document.getElementById('editThemeName').value = bg.theme_name;
+                document.getElementById('editImagePreview').src = bg.file_path;
+                
+                new bootstrap.Modal(document.getElementById('editBackgroundModal')).show();
+            } else {
+                showAlert('danger', data.message);
+            }
+        })
+        .catch(error => {
+            showAlert('danger', '获取背景图信息失败：' + error.message);
+        });
+}
+
+// 保存编辑
+document.getElementById('editBackgroundForm').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    
+    const formData = new FormData(this);
+    
+    try {
+        const response = await fetch('/theme-backgrounds/update', {
+            method: 'POST',
+            body: formData
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            showAlert('success', result.message);
+            setTimeout(() => location.reload(), 1500);
+        } else {
+            showAlert('danger', result.message);
+        }
+    } catch (error) {
+        showAlert('danger', '更新失败：' + error.message);
+    }
+});
+
+// 删除背景图
+function deleteBackground(id) {
+    if (confirm('确定要删除这个背景图吗？此操作不可恢复。')) {
+        fetch('/theme-backgrounds/delete', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({id: id})
+        })
+        .then(response => response.json())
+        .then(result => {
+            if (result.success) {
+                showAlert('success', result.message);
+                setTimeout(() => location.reload(), 1500);
+            } else {
+                showAlert('danger', result.message);
+            }
+        })
+        .catch(error => {
+            showAlert('danger', '删除失败：' + error.message);
+        });
+    }
+}
+
+// 预览背景图
+function previewBackground(imagePath, imageName) {
+    document.getElementById('previewImage').src = imagePath;
+    document.getElementById('previewImage').alt = imageName;
+    new bootstrap.Modal(document.getElementById('previewModal')).show();
+}
+
+// 清空所有背景图
+function clearAllBackgrounds() {
+    if (confirm('确定要清空所有背景图吗？此操作不可恢复。')) {
+        fetch('/theme-backgrounds/clear-all', {
+            method: 'POST'
+        })
+        .then(response => response.json())
+        .then(result => {
+            if (result.success) {
+                showAlert('success', result.message);
+                setTimeout(() => location.reload(), 1500);
+            } else {
+                showAlert('danger', result.message);
+            }
+        })
+        .catch(error => {
+            showAlert('danger', '清空失败：' + error.message);
+        });
+    }
+}
+
+// 显示提示信息
+function showAlert(type, message) {
+    const alertDiv = document.createElement('div');
+    alertDiv.className = `alert alert-${type} alert-dismissible fade show position-fixed`;
+    alertDiv.style.cssText = 'top: 20px; right: 20px; z-index: 9999; min-width: 300px;';
+    alertDiv.innerHTML = `
+        ${message}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    `;
+    
+    document.body.appendChild(alertDiv);
+    
+    setTimeout(() => {
+        if (alertDiv.parentNode) {
+            alertDiv.parentNode.removeChild(alertDiv);
+        }
+    }, 5000);
+}
+</script>
+{% endblock %}

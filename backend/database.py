@@ -112,6 +112,20 @@ def init_database():
         )
     ''')
     
+    # 创建主题背景图表
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS theme_backgrounds (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            theme_name TEXT NOT NULL,
+            background_name TEXT NOT NULL,
+            file_path TEXT NOT NULL,
+            file_size INTEGER DEFAULT 0,
+            upload_time DATETIME DEFAULT CURRENT_TIMESTAMP,
+            is_active BOOLEAN DEFAULT 1,
+            UNIQUE(theme_name, background_name)
+        )
+    ''')
+    
     # 插入默认数据
     init_default_data(cursor)
     
@@ -167,7 +181,7 @@ class DatabaseManager:
         conn.commit()
         last_id = cursor.lastrowid
         conn.close()
-        return last_id
+        return last_id or 0
 
     # 印花图案相关操作
     @staticmethod
@@ -452,3 +466,82 @@ class DatabaseManager:
         """更新用户最后登录时间"""
         query = "UPDATE users SET last_login = datetime('now') WHERE username = ?"
         return DatabaseManager.execute_update(query, (username,))
+
+    # 主题背景图相关操作
+    @staticmethod
+    def get_theme_backgrounds(theme_name: str = None, active_only: bool = True) -> List[Dict[str, Any]]:
+        """获取主题背景图列表"""
+        query = "SELECT * FROM theme_backgrounds"
+        params = []
+        conditions = []
+        
+        if theme_name:
+            conditions.append("theme_name = ?")
+            params.append(theme_name)
+        
+        if active_only:
+            conditions.append("is_active = 1")
+        
+        if conditions:
+            query += " WHERE " + " AND ".join(conditions)
+        
+        query += " ORDER BY theme_name, upload_time DESC"
+        return DatabaseManager.execute_query(query, tuple(params))
+    
+    @staticmethod
+    def add_theme_background(theme_name: str, background_name: str, file_path: str, file_size: int) -> int:
+        """添加主题背景图"""
+        query = '''
+            INSERT INTO theme_backgrounds (theme_name, background_name, file_path, file_size)
+            VALUES (?, ?, ?, ?)
+        '''
+        return DatabaseManager.execute_insert(query, (theme_name, background_name, file_path, file_size))
+    
+    @staticmethod
+    @staticmethod
+    def update_theme_background(bg_id: int, background_name: str = None, theme_name: str = None, file_path: str = None, file_size: int = None) -> int:
+        """更新主题背景图"""
+        updates = []
+        params = []
+        
+        if background_name:
+            updates.append("background_name = ?")
+            params.append(background_name)
+        
+        if theme_name:
+            updates.append("theme_name = ?")
+            params.append(theme_name)
+        
+        if file_path:
+            updates.append("file_path = ?")
+            params.append(file_path)
+        
+        if file_size is not None:
+            updates.append("file_size = ?")
+            params.append(file_size)
+        
+        if not updates:
+            return 0
+        
+        params.append(bg_id)
+        query = f"UPDATE theme_backgrounds SET {', '.join(updates)} WHERE id = ?"
+        return DatabaseManager.execute_update(query, tuple(params))
+    
+    @staticmethod
+    def delete_theme_background(bg_id: int) -> int:
+        """删除主题背景图"""
+        query = "DELETE FROM theme_backgrounds WHERE id = ?"
+        return DatabaseManager.execute_update(query, (bg_id,))
+    
+    @staticmethod
+    def clear_theme_backgrounds(theme_name: str) -> int:
+        """清空指定主题的所有背景图"""
+        query = "DELETE FROM theme_backgrounds WHERE theme_name = ?"
+        return DatabaseManager.execute_update(query, (theme_name,))
+    
+    @staticmethod
+    def get_theme_background_by_id(bg_id: int) -> Optional[Dict[str, Any]]:
+        """根据ID获取主题背景图"""
+        query = "SELECT * FROM theme_backgrounds WHERE id = ?"
+        results = DatabaseManager.execute_query(query, (bg_id,))
+        return results[0] if results else None
