@@ -177,7 +177,7 @@ class AdminMethodsExtension:
     
     def update_user_permissions(self, user_id: int, pattern_manage: bool, product_manage: bool, 
                                category_manage: bool, access_code_manage: bool, 
-                               user_manage: bool, theme_manage: bool):
+                               user_manage: bool):
         """更新用户权限"""
         if not self.admin.check_permission('user_manage'):
             return "权限不足"
@@ -198,8 +198,6 @@ class AdminMethodsExtension:
                 permissions.append('access_code_manage')
             if user_manage:
                 permissions.append('user_manage')
-            if theme_manage:
-                permissions.append('theme_manage')
             
             permissions_str = ','.join(permissions)
             

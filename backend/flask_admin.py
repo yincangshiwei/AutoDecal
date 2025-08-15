@@ -10,7 +10,7 @@ from datetime import datetime, timedelta
 from PIL import Image
 from .database import DatabaseManager
 from .auth import AuthManager, AccessCodeManager, login_required, admin_required
-from .models import Pattern, Product, ProductCategory, AccessCode, ThemeTemplate
+from .models import Pattern, Product, ProductCategory, AccessCode
 
 # 创建后台管理蓝图
 admin_bp = Blueprint('admin', __name__, url_prefix='/admin')
@@ -254,6 +254,74 @@ def add_product():
     except Exception as e:
         return jsonify({'success': False, 'message': f'添加失败: {str(e)}'})
 
+@admin_bp.route('/products/get')
+@login_required
+def get_product():
+    """获取单个产品信息"""
+    try:
+        product_id = request.args.get('id', type=int)
+        if not product_id:
+            return jsonify({'success': False, 'message': '缺少产品ID'})
+        
+        products = DatabaseManager.get_products()
+        product = next((p for p in products if p['id'] == product_id), None)
+        
+        if product:
+            return jsonify({'success': True, 'data': product})
+        else:
+            return jsonify({'success': False, 'message': '产品不存在'})
+    except Exception as e:
+        return jsonify({'success': False, 'message': f'获取失败: {str(e)}'})
+
+@admin_bp.route('/products/update', methods=['POST'])
+@login_required
+def update_product():
+    """更新产品"""
+    try:
+        product_id = request.form.get('id', type=int)
+        title = request.form.get('title')
+        category_id = request.form.get('category_id', type=int)
+        
+        if not product_id or not title or not category_id:
+            return jsonify({'success': False, 'message': '缺少必要参数'})
+        
+        result = DatabaseManager.update_product(product_id, title=title, category_id=category_id)
+        if result > 0:
+            return jsonify({'success': True, 'message': '产品更新成功！'})
+        else:
+            return jsonify({'success': False, 'message': '产品不存在或更新失败'})
+    except Exception as e:
+        return jsonify({'success': False, 'message': f'更新失败: {str(e)}'})
+
+@admin_bp.route('/products/delete', methods=['POST'])
+@login_required
+def delete_product():
+    """删除产品"""
+    try:
+        data = request.get_json()
+        product_id = data.get('id')
+        
+        if not product_id:
+            return jsonify({'success': False, 'message': '缺少产品ID'})
+        
+        result = DatabaseManager.delete_product(product_id)
+        if result > 0:
+            return jsonify({'success': True, 'message': '产品删除成功！'})
+        else:
+            return jsonify({'success': False, 'message': '产品不存在或已删除'})
+    except Exception as e:
+        return jsonify({'success': False, 'message': f'删除失败: {str(e)}'})
+
+@admin_bp.route('/products/clear', methods=['POST'])
+@login_required
+def clear_products():
+    """清空所有产品"""
+    try:
+        result = DatabaseManager.clear_products()
+        return jsonify({'success': True, 'message': f'已清空所有产品，共 {result} 个'})
+    except Exception as e:
+        return jsonify({'success': False, 'message': f'清空失败: {str(e)}'})
+
 # 分类管理
 @admin_bp.route('/categories')
 @login_required
@@ -334,14 +402,6 @@ def delete_access_code(code_id):
     except Exception as e:
         return jsonify({'success': False, 'message': f'删除失败: {str(e)}'})
 
-# 主题管理
-@admin_bp.route('/themes')
-@login_required
-def themes():
-    """主题管理页面"""
-    themes = DatabaseManager.get_themes(active_only=False)
-    return render_template('admin/themes.html', themes=themes)
-
 # 用户管理
 @admin_bp.route('/users')
 @admin_required
@@ -349,74 +409,6 @@ def users():
     """用户管理页面"""
     users = DatabaseManager.get_users(active_only=False)
     return render_template('admin/users.html', users=users)
-
-@admin_bp.route('/products/get')
-@login_required
-def get_product():
-    """获取单个产品信息"""
-    try:
-        product_id = request.args.get('id', type=int)
-        if not product_id:
-            return jsonify({'success': False, 'message': '缺少产品ID'})
-        
-        products = DatabaseManager.get_products()
-        product = next((p for p in products if p['id'] == product_id), None)
-        
-        if product:
-            return jsonify({'success': True, 'data': product})
-        else:
-            return jsonify({'success': False, 'message': '产品不存在'})
-    except Exception as e:
-        return jsonify({'success': False, 'message': f'获取失败: {str(e)}'})
-
-@admin_bp.route('/products/update', methods=['POST'])
-@login_required
-def update_product():
-    """更新产品"""
-    try:
-        product_id = request.form.get('id', type=int)
-        title = request.form.get('title')
-        category_id = request.form.get('category_id', type=int)
-        
-        if not product_id or not title or not category_id:
-            return jsonify({'success': False, 'message': '缺少必要参数'})
-        
-        result = DatabaseManager.update_product(product_id, title=title, category_id=category_id)
-        if result > 0:
-            return jsonify({'success': True, 'message': '产品更新成功！'})
-        else:
-            return jsonify({'success': False, 'message': '产品不存在或更新失败'})
-    except Exception as e:
-        return jsonify({'success': False, 'message': f'更新失败: {str(e)}'})
-
-@admin_bp.route('/products/delete', methods=['POST'])
-@login_required
-def delete_product():
-    """删除产品"""
-    try:
-        data = request.get_json()
-        product_id = data.get('id')
-        
-        if not product_id:
-            return jsonify({'success': False, 'message': '缺少产品ID'})
-        
-        result = DatabaseManager.delete_product(product_id)
-        if result > 0:
-            return jsonify({'success': True, 'message': '产品删除成功！'})
-        else:
-            return jsonify({'success': False, 'message': '产品不存在或已删除'})
-    except Exception as e:
-        return jsonify({'success': False, 'message': f'删除失败: {str(e)}'})
-
-@admin_bp.route('/products/clear', methods=['POST'])
-@login_required
-def clear_products():
-    """清空所有产品"""
-    try:
-        result = DatabaseManager.clear_products()
-        return jsonify({'success': True, 'message': f'已清空所有产品，共 {result} 个'})
-    except Exception as e:
-        return jsonify({'success': False, 'message': f'清空失败: {str(e)}'})
 
 # 系统设置
 @admin_bp.route('/settings')

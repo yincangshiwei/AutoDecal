@@ -10,7 +10,7 @@ from datetime import datetime, timedelta
 from PIL import Image
 from backend.database import DatabaseManager, init_database
 from backend.auth import AuthManager, AccessCodeManager
-from backend.models import Pattern, Product, ProductCategory, AccessCode, ThemeTemplate
+from backend.models import Pattern, Product, ProductCategory, AccessCode
 
 # 创建独立的Flask应用
 app = Flask(__name__)
@@ -542,13 +542,13 @@ def clear_products():
     """清空所有产品"""
     try:
         # 获取所有产品文件路径
-        query = "SELECT image_path, depth_map_path FROM products"
+        query = "SELECT product_image_path, depth_image_path FROM products"
         results = DatabaseManager.execute_query(query)
         
         # 删除文件
         for row in results:
-            image_path = os.path.join('uploads', 'products', row['image_path'])
-            depth_path = os.path.join('uploads', 'depth_maps', row['depth_map_path'])
+            image_path = os.path.join('uploads', 'products', row['product_image_path'])
+            depth_path = os.path.join('uploads', 'depth_maps', row['depth_image_path'])
             
             if os.path.exists(image_path):
                 os.remove(image_path)
@@ -1080,152 +1080,6 @@ def toggle_user_status():
     except Exception as e:
         return jsonify({'success': False, 'message': f'操作失败: {str(e)}'})
 
-# 主题管理
-@app.route('/themes')
-@login_required
-def themes():
-    """主题管理页面"""
-    try:
-        query = "SELECT * FROM themes ORDER BY created_time DESC"
-        results = DatabaseManager.execute_query(query)
-        themes = [dict(row) for row in results] if results else []
-    except Exception as e:
-        print(f"获取主题数据失败: {e}")
-        themes = []
-    return render_template('admin/themes.html', themes=themes)
-
-@app.route('/themes/add', methods=['POST'])
-@login_required
-def add_theme():
-    """添加主题"""
-    try:
-        data = request.get_json()
-        name = data.get('name')
-        season = data.get('season', '')
-        description = data.get('description', '')
-        primary_color = data.get('primary_color', '#007bff')
-        secondary_color = data.get('secondary_color', '#6c757d')
-        accent_color = data.get('accent_color', '#28a745')
-        is_active = data.get('is_active', True)
-        
-        if not name:
-            return jsonify({'success': False, 'message': '请输入主题名称'})
-        
-        query = '''
-            INSERT INTO themes (name, season, description, primary_color, secondary_color, accent_color, is_active, created_time)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-        '''
-        theme_id = DatabaseManager.execute_insert(query, (
-            name, season, description, primary_color, secondary_color, accent_color, is_active, datetime.now()
-        ))
-        
-        return jsonify({
-            'success': True,
-            'message': f'主题"{name}"添加成功！',
-            'theme_id': theme_id
-        })
-        
-    except Exception as e:
-        return jsonify({'success': False, 'message': f'添加失败: {str(e)}'})
-
-@app.route('/themes/get')
-@login_required
-def get_theme():
-    """获取单个主题信息"""
-    try:
-        theme_id = request.args.get('id', type=int)
-        if not theme_id:
-            return jsonify({'success': False, 'message': '缺少主题ID'})
-        
-        query = "SELECT * FROM themes WHERE id = ?"
-        results = DatabaseManager.execute_query(query, (theme_id,))
-        
-        if results:
-            theme = dict(results[0])
-            return jsonify({'success': True, 'data': theme})
-        else:
-            return jsonify({'success': False, 'message': '主题不存在'})
-    except Exception as e:
-        return jsonify({'success': False, 'message': f'获取失败: {str(e)}'})
-
-@app.route('/themes/update', methods=['POST'])
-@login_required
-def update_theme():
-    """更新主题"""
-    try:
-        data = request.get_json()
-        theme_id = data.get('id')
-        name = data.get('name')
-        season = data.get('season', '')
-        description = data.get('description', '')
-        primary_color = data.get('primary_color')
-        secondary_color = data.get('secondary_color')
-        accent_color = data.get('accent_color')
-        is_active = data.get('is_active', True)
-        
-        if not theme_id or not name:
-            return jsonify({'success': False, 'message': '缺少必要参数'})
-        
-        query = '''
-            UPDATE themes 
-            SET name = ?, season = ?, description = ?, primary_color = ?, secondary_color = ?, accent_color = ?, is_active = ?
-            WHERE id = ?
-        '''
-        result = DatabaseManager.execute_update(query, (
-            name, season, description, primary_color, secondary_color, accent_color, is_active, theme_id
-        ))
-        
-        if result > 0:
-            return jsonify({'success': True, 'message': '主题更新成功！'})
-        else:
-            return jsonify({'success': False, 'message': '主题不存在或更新失败'})
-    except Exception as e:
-        return jsonify({'success': False, 'message': f'更新失败: {str(e)}'})
-
-@app.route('/themes/delete', methods=['POST'])
-@login_required
-def delete_theme():
-    """删除主题"""
-    try:
-        data = request.get_json()
-        theme_id = data.get('id')
-        
-        if not theme_id:
-            return jsonify({'success': False, 'message': '缺少主题ID'})
-        
-        query = "DELETE FROM themes WHERE id = ?"
-        result = DatabaseManager.execute_update(query, (theme_id,))
-        
-        if result > 0:
-            return jsonify({'success': True, 'message': '主题删除成功！'})
-        else:
-            return jsonify({'success': False, 'message': '主题不存在或已删除'})
-    except Exception as e:
-        return jsonify({'success': False, 'message': f'删除失败: {str(e)}'})
-
-@app.route('/themes/toggle-status', methods=['POST'])
-@login_required
-def toggle_theme_status():
-    """切换主题状态"""
-    try:
-        data = request.get_json()
-        theme_id = data.get('id')
-        is_active = data.get('is_active')
-        
-        if not theme_id or is_active is None:
-            return jsonify({'success': False, 'message': '缺少必要参数'})
-        
-        query = "UPDATE themes SET is_active = ? WHERE id = ?"
-        result = DatabaseManager.execute_update(query, (is_active, theme_id))
-        
-        if result > 0:
-            action = '启用' if is_active else '禁用'
-            return jsonify({'success': True, 'message': f'主题{action}成功！'})
-        else:
-            return jsonify({'success': False, 'message': '主题不存在或操作失败'})
-    except Exception as e:
-        return jsonify({'success': False, 'message': f'操作失败: {str(e)}'})
-
 # 系统设置
 @app.route('/settings')
 @admin_required
@@ -1346,7 +1200,7 @@ def reset_database():
             shutil.copy2('database.db', backup_path)
         
         # 清空所有表的数据（保留表结构）
-        tables = ['patterns', 'products', 'product_categories', 'access_codes', 'theme_templates']
+        tables = ['patterns', 'products', 'product_categories', 'access_codes']
         for table in tables:
             DatabaseManager.execute_update(f"DELETE FROM {table}")
         
@@ -1381,10 +1235,10 @@ def initialize_default_data():
             # 创建默认管理员账户
             password_hash = AuthManager.hash_password('admin123')
             query = '''
-                INSERT INTO users (username, email, password_hash, is_admin, is_active, created_time)
-                VALUES (?, ?, ?, 1, 1, ?)
+                INSERT INTO users (username, password_hash, is_admin, is_active, created_time)
+                VALUES (?, ?, 1, 1, ?)
             '''
-            DatabaseManager.execute_insert(query, ('admin', 'admin@example.com', password_hash, datetime.now()))
+            DatabaseManager.execute_insert(query, ('admin', password_hash, datetime.now()))
             print("✓ 默认管理员账户已创建")
         else:
             # 更新现有管理员密码为正确的哈希值
@@ -1436,7 +1290,7 @@ if __name__ == '__main__':
     print("=" * 60)
     print("💡 使用说明:")
     print("   1. 访问后台管理界面进行图案和产品管理")
-    print("   2. 支持印花图案、产品、分类、授权码、用户、主题管理")
+    print("   2. 支持印花图案、产品、分类、授权码、用户管理")
     print("   3. 适合展会展台展示使用")
     print("=" * 60)
     

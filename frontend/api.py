@@ -92,37 +92,6 @@ def create_api_blueprint():
                 'message': f'获取默认分类失败: {str(e)}'
             })
     
-    @api.route('/themes')
-    @access_code_required
-    def get_themes():
-        """获取主题模板列表"""
-        try:
-            themes = DatabaseManager.get_themes()
-            return jsonify({
-                'success': True,
-                'data': themes
-            })
-        except Exception as e:
-            return jsonify({
-                'success': False,
-                'message': f'获取主题列表失败: {str(e)}'
-            })
-    
-    @api.route('/default_theme')
-    @access_code_required
-    def get_default_theme():
-        """获取默认主题"""
-        try:
-            theme = DatabaseManager.get_default_theme()
-            return jsonify({
-                'success': True,
-                'data': theme
-            })
-        except Exception as e:
-            return jsonify({
-                'success': False,
-                'message': f'获取默认主题失败: {str(e)}'
-            })
     
     @api.route('/auth/verify', methods=['POST'])
     def verify_auth():
@@ -140,35 +109,6 @@ def create_api_blueprint():
         else:
             return jsonify({'success': False, 'message': '无效的访问授权码或已过期'})
     
-    @api.route('/theme/switch', methods=['POST'])
-    @access_code_required
-    def switch_theme():
-        """切换主题"""
-        try:
-            data = request.get_json()
-            theme_id = data.get('themeId')
-            
-            if not theme_id:
-                return jsonify({'success': False, 'message': '请提供主题ID'})
-            
-            # 获取主题信息
-            theme = DatabaseManager.get_theme_by_id(theme_id)
-            if not theme:
-                return jsonify({'success': False, 'message': '主题不存在'})
-            
-            # 在session中保存当前主题
-            session['current_theme'] = theme_id
-            
-            return jsonify({
-                'success': True,
-                'message': '主题切换成功',
-                'data': theme
-            })
-        except Exception as e:
-            return jsonify({
-                'success': False,
-                'message': f'主题切换失败: {str(e)}'
-            })
     
     @api.route('/export', methods=['POST'])
     @access_code_required

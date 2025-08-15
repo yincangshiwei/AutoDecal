@@ -6,7 +6,7 @@ import sqlite3
 import os
 from datetime import datetime
 from typing import List, Optional, Dict, Any
-from .models import Pattern, ProductCategory, Product, AccessCode, User, ThemeTemplate
+from .models import Pattern, ProductCategory, Product, AccessCode, User
 
 DATABASE_PATH = 'database.db'
 
@@ -97,90 +97,6 @@ def init_database():
             FOREIGN KEY (access_code) REFERENCES access_codes (code)
         )
     ''')
-"""
-数据库操作类
-处理SQLite数据库的创建、连接和基础操作
-"""
-import sqlite3
-import os
-from datetime import datetime
-from typing import List, Optional, Dict, Any
-from .models import Pattern, ProductCategory, Product, AccessCode, User, ThemeTemplate
-
-DATABASE_PATH = 'database.db'
-
-def get_db_connection():
-    """获取数据库连接"""
-    conn = sqlite3.connect(DATABASE_PATH)
-    conn.row_factory = sqlite3.Row
-    return conn
-
-def init_database():
-    """初始化数据库表结构"""
-    conn = get_db_connection()
-    cursor = conn.cursor()
-    
-    # 创建印花图案表
-    cursor.execute('''
-        CREATE TABLE IF NOT EXISTS patterns (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            name TEXT NOT NULL,
-            filename TEXT NOT NULL,
-            file_path TEXT NOT NULL,
-            upload_time DATETIME DEFAULT CURRENT_TIMESTAMP,
-            file_size INTEGER DEFAULT 0,
-            image_width INTEGER DEFAULT 0,
-            image_height INTEGER DEFAULT 0,
-            is_active BOOLEAN DEFAULT 1
-        )
-    ''')
-    
-    # 创建产品分类表
-    cursor.execute('''
-        CREATE TABLE IF NOT EXISTS product_categories (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            name TEXT NOT NULL UNIQUE,
-            is_default BOOLEAN DEFAULT 0,
-            sort_order INTEGER DEFAULT 0,
-            is_active BOOLEAN DEFAULT 1,
-            created_time DATETIME DEFAULT CURRENT_TIMESTAMP
-        )
-    ''')
-    
-    # 创建产品表
-    cursor.execute('''
-        CREATE TABLE IF NOT EXISTS products (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            title TEXT NOT NULL,
-            category_id INTEGER NOT NULL,
-            product_image TEXT NOT NULL,
-            depth_image TEXT NOT NULL,
-            product_image_path TEXT NOT NULL,
-            depth_image_path TEXT NOT NULL,
-            upload_time DATETIME DEFAULT CURRENT_TIMESTAMP,
-            image_width INTEGER DEFAULT 0,
-            image_height INTEGER DEFAULT 0,
-            is_active BOOLEAN DEFAULT 1,
-            FOREIGN KEY (category_id) REFERENCES product_categories (id)
-        )
-    ''')
-    
-    
-    # 检查并添加新字段（用于数据库升级）
-    try:
-        cursor.execute("ALTER TABLE access_codes ADD COLUMN expires_at DATETIME")
-    except sqlite3.OperationalError:
-        pass  # 字段已存在
-    
-    try:
-        cursor.execute("ALTER TABLE access_codes ADD COLUMN max_uses INTEGER")
-    except sqlite3.OperationalError:
-        pass  # 字段已存在
-    
-    try:
-        cursor.execute("ALTER TABLE access_codes ADD COLUMN used_count INTEGER DEFAULT 0")
-    except sqlite3.OperationalError:
-        pass  # 字段已存在
     
     # 创建用户表
     cursor.execute('''
@@ -193,22 +109,6 @@ def init_database():
             created_time DATETIME DEFAULT CURRENT_TIMESTAMP,
             last_login DATETIME,
             is_active BOOLEAN DEFAULT 1
-        )
-    ''')
-    
-    # 创建主题模板表
-    cursor.execute('''
-        CREATE TABLE IF NOT EXISTS theme_templates (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            name TEXT NOT NULL UNIQUE,
-            display_name TEXT NOT NULL,
-            css_file TEXT NOT NULL,
-            background_image TEXT,
-            primary_color TEXT,
-            secondary_color TEXT,
-            is_default BOOLEAN DEFAULT 0,
-            is_active BOOLEAN DEFAULT 1,
-            created_time DATETIME DEFAULT CURRENT_TIMESTAMP
         )
     ''')
     
@@ -233,20 +133,6 @@ def init_default_data(cursor):
             INSERT OR IGNORE INTO product_categories (name, is_default, sort_order)
             VALUES (?, ?, ?)
         ''', (name, is_default, sort_order))
-    
-    # 创建默认主题模板
-    default_themes = [
-        ('default', '默认主题', 'main.css', '', '#1976D2', '#424242', True),
-        ('christmas', '圣诞主题', 'christmas.css', '', '#C62828', '#2E7D32', False),
-        ('easter', '复活节主题', 'easter.css', '', '#7B1FA2', '#388E3C', False)
-    ]
-    
-    for name, display_name, css_file, bg_image, primary, secondary, is_default in default_themes:
-        cursor.execute('''
-            INSERT OR IGNORE INTO theme_templates 
-            (name, display_name, css_file, background_image, primary_color, secondary_color, is_default)
-            VALUES (?, ?, ?, ?, ?, ?, ?)
-        ''', (name, display_name, css_file, bg_image, primary, secondary, is_default))
 
 class DatabaseManager:
     """数据库管理类"""
@@ -384,7 +270,6 @@ class DatabaseManager:
         return DatabaseManager.execute_query(query, tuple(params))
     
     @staticmethod
-    @staticmethod
     def add_product(product: Product) -> int:
         """添加产品"""
         query = '''
@@ -430,72 +315,6 @@ class DatabaseManager:
         query = "UPDATE products SET is_active = 0"
         return DatabaseManager.execute_update(query)
 
-    # 主题模板相关操作
-    @staticmethod
-    def get_themes(active_only: bool = True) -> List[Dict[str, Any]]:
-        """获取主题模板列表"""
-        query = "SELECT * FROM theme_templates"
-        if active_only:
-            query += " WHERE is_active = 1"
-        query += " ORDER BY is_default DESC, created_time"
-        return DatabaseManager.execute_query(query)
-    
-    @staticmethod
-    @staticmethod
-    def get_default_theme() -> Optional[Dict[str, Any]]:
-        """获取默认主题"""
-        query = "SELECT * FROM theme_templates WHERE is_default = 1 AND is_active = 1 LIMIT 1"
-        results = DatabaseManager.execute_query(query)
-        return results[0] if results else None
-    
-    @staticmethod
-    def get_theme_by_id(theme_id: int) -> Optional[Dict[str, Any]]:
-        """根据ID获取主题"""
-        query = "SELECT * FROM theme_templates WHERE id = ? AND is_active = 1"
-        results = DatabaseManager.execute_query(query, (theme_id,))
-        return results[0] if results else None
-    
-    @staticmethod
-    def add_theme(theme: ThemeTemplate) -> int:
-        """添加主题模板"""
-        # 如果设置为默认主题，先取消其他默认主题
-        if theme.is_default:
-            DatabaseManager.execute_update("UPDATE theme_templates SET is_default = 0")
-        
-        query = '''
-            INSERT INTO theme_templates 
-            (name, display_name, css_file, background_image, primary_color, secondary_color, is_default)
-            VALUES (?, ?, ?, ?, ?, ?, ?)
-        '''
-        return DatabaseManager.execute_insert(query, (
-            theme.name, theme.display_name, theme.css_file, theme.background_image,
-            theme.primary_color, theme.secondary_color, theme.is_default
-        ))
-    
-    @staticmethod
-    def update_theme(theme_id: int, theme: ThemeTemplate) -> int:
-        """更新主题模板"""
-        # 如果设置为默认主题，先取消其他默认主题
-        if theme.is_default:
-            DatabaseManager.execute_update("UPDATE theme_templates SET is_default = 0 WHERE id != ?", (theme_id,))
-        
-        query = '''
-            UPDATE theme_templates 
-            SET name = ?, display_name = ?, css_file = ?, background_image = ?, 
-                primary_color = ?, secondary_color = ?, is_default = ?
-            WHERE id = ?
-        '''
-        return DatabaseManager.execute_update(query, (
-            theme.name, theme.display_name, theme.css_file, theme.background_image,
-            theme.primary_color, theme.secondary_color, theme.is_default, theme_id
-        ))
-    
-    @staticmethod
-    def delete_theme(theme_id: int) -> int:
-        """删除主题模板（软删除）"""
-        query = "UPDATE theme_templates SET is_active = 0 WHERE id = ?"
-        return DatabaseManager.execute_update(query, (theme_id,))
-
     # 访问授权码相关操作
     @staticmethod
     def get_access_codes(active_only: bool = True) -> List[Dict[str, Any]]:
@@ -510,12 +329,12 @@ class DatabaseManager:
     def add_access_code(access_code: AccessCode) -> int:
         """添加访问授权码"""
         query = '''
-            INSERT INTO access_codes (code, description, start_date, end_date)
+            INSERT INTO access_codes (code, description, expires_at, max_uses)
             VALUES (?, ?, ?, ?)
         '''
         return DatabaseManager.execute_insert(query, (
             access_code.code, access_code.description, 
-            access_code.start_date, access_code.end_date
+            access_code.expires_at, access_code.max_uses
         ))
     
     @staticmethod

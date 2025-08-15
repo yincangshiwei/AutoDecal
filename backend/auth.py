@@ -282,7 +282,6 @@ PERMISSIONS = {
     'category_manage': '分类管理',
     'access_code_manage': '授权码管理',
     'user_manage': '用户管理',
-    'theme_manage': '主题管理'
 }
 
 def get_permission_list():

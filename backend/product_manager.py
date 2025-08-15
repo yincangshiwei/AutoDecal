@@ -173,13 +173,12 @@ def create_user_management_interface(admin):
                 perm_category = gr.Checkbox(label="分类管理")
                 perm_access_code = gr.Checkbox(label="授权码管理")
                 perm_user = gr.Checkbox(label="用户管理")
-                perm_theme = gr.Checkbox(label="主题管理")
                 update_perm_btn = gr.Button("更新权限")
                 update_perm_result = gr.Textbox(label="操作结果", interactive=False)
                 
                 update_perm_btn.click(
                     admin.update_user_permissions,
                     inputs=[perm_user_id, perm_pattern, perm_product, perm_category, 
-                           perm_access_code, perm_user, perm_theme],
+                           perm_access_code, perm_user],
                     outputs=update_perm_result
                 )
