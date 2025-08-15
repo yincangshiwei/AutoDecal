@@ -448,6 +448,8 @@ window.addEventListener('load', () => {
 
     // --- Part 5: UI事件监听器 ---
     // 背景图：获取/应用/按主题加载
+    let bgOverlayOpacityTop = parseFloat(localStorage.getItem('bgOpacityTop') || '0.3');
+    let bgOverlayOpacityBottom = parseFloat(localStorage.getItem('bgOpacityBottom') || '0.3');
     async function fetchBackgrounds(themeKey) {
         try {
             const resp = await fetch(`/api/theme-backgrounds?theme=${encodeURIComponent(themeKey)}`);
@@ -466,8 +468,10 @@ window.addEventListener('load', () => {
         const container = document.querySelector('.editor-container');
 
         if (url) {
-            // 叠加半透明白，保持白色为主；同时将背景应用到 body 与 editor 容器
-            const layered = `linear-gradient(rgba(255,255,255,0.88), rgba(255,255,255,0.88)), url('${url}')`;
+            // 叠加半透明白，保持白色为主；透明度分为上下两端可独立调节
+            const a1 = Math.max(0, Math.min(1, Number.isFinite(bgOverlayOpacityTop) ? bgOverlayOpacityTop : 0.3));
+            const a2 = Math.max(0, Math.min(1, Number.isFinite(bgOverlayOpacityBottom) ? bgOverlayOpacityBottom : 0.3));
+            const layered = `linear-gradient(rgba(255,255,255,${a1}), rgba(255,255,255,${a2})), url('${url}')`;
 
             if (body) {
                 body.style.setProperty('background-image', layered, 'important');
@@ -506,6 +510,102 @@ window.addEventListener('load', () => {
         }
     }
 
+    // 动态创建并绑定“背景透明度（上下端）”控件（不改模板结构，仅并排插入）
+    function setupBgOpacityControls() {
+        const bgSelect = document.getElementById('bgSelect');
+        if (!bgSelect) return;
+
+        // 重复调用时复用已存在的控件
+        let topSlider = document.getElementById('bgOpacityTop');
+        let bottomSlider = document.getElementById('bgOpacityBottom');
+        let topLabel = document.getElementById('bgOpacityTopLabel');
+        let bottomLabel = document.getElementById('bgOpacityBottomLabel');
+
+        if (!topSlider || !bottomSlider) {
+            const wrap = document.createElement('div');
+            wrap.className = 'flex items-center gap-3 flex-wrap';
+
+            // 上端
+            const g1 = document.createElement('div');
+            g1.className = 'flex items-center gap-2';
+            topLabel = document.createElement('label');
+            topLabel.id = 'bgOpacityTopLabel';
+            topLabel.className = 'text-sm font-medium text-gray-300';
+            topLabel.textContent = `上层透明度 (${(Number.isFinite(bgOverlayOpacityTop) ? bgOverlayOpacityTop : 0.3).toFixed(2)})`;
+            topSlider = document.createElement('input');
+            topSlider.type = 'range';
+            topSlider.id = 'bgOpacityTop';
+            topSlider.min = '0';
+            topSlider.max = '1';
+            topSlider.step = '0.01';
+            topSlider.value = String(Number.isFinite(bgOverlayOpacityTop) ? bgOverlayOpacityTop : 0.3);
+            topSlider.className = 'w-28 slider-thumb';
+
+            // 下端
+            const g2 = document.createElement('div');
+            g2.className = 'flex items-center gap-2';
+            bottomLabel = document.createElement('label');
+            bottomLabel.id = 'bgOpacityBottomLabel';
+            bottomLabel.className = 'text-sm font-medium text-gray-300';
+            bottomLabel.textContent = `下层透明度 (${(Number.isFinite(bgOverlayOpacityBottom) ? bgOverlayOpacityBottom : 0.3).toFixed(2)})`;
+            bottomSlider = document.createElement('input');
+            bottomSlider.type = 'range';
+            bottomSlider.id = 'bgOpacityBottom';
+            bottomSlider.min = '0';
+            bottomSlider.max = '1';
+            bottomSlider.step = '0.01';
+            bottomSlider.value = String(Number.isFinite(bgOverlayOpacityBottom) ? bgOverlayOpacityBottom : 0.3);
+            bottomSlider.className = 'w-28 slider-thumb';
+
+            g1.appendChild(topLabel);
+            g1.appendChild(topSlider);
+            g2.appendChild(bottomLabel);
+            g2.appendChild(bottomSlider);
+            wrap.appendChild(g1);
+            wrap.appendChild(g2);
+
+            // 插入在背景选择控件后
+            if (bgSelect.parentElement) {
+                bgSelect.parentElement.appendChild(wrap);
+            }
+        } else {
+            // 同步显示值
+            topSlider.value = String(Number.isFinite(bgOverlayOpacityTop) ? bgOverlayOpacityTop : 0.3);
+            bottomSlider.value = String(Number.isFinite(bgOverlayOpacityBottom) ? bgOverlayOpacityBottom : 0.3);
+            if (topLabel) topLabel.textContent = `上层透明度 (${(Number.isFinite(bgOverlayOpacityTop) ? bgOverlayOpacityTop : 0.3).toFixed(2)})`;
+            if (bottomLabel) bottomLabel.textContent = `下层透明度 (${(Number.isFinite(bgOverlayOpacityBottom) ? bgOverlayOpacityBottom : 0.3).toFixed(2)})`;
+        }
+
+        const updateDisabled = () => {
+            const disabled = !bgSelect.value;
+            topSlider.disabled = disabled;
+            bottomSlider.disabled = disabled;
+        };
+        updateDisabled();
+
+        topSlider.addEventListener('input', () => {
+            bgOverlayOpacityTop = parseFloat(topSlider.value) || 0;
+            try { localStorage.setItem('bgOpacityTop', String(bgOverlayOpacityTop)); } catch (_) {}
+            if (topLabel) topLabel.textContent = `上层透明度 (${bgOverlayOpacityTop.toFixed(2)})`;
+            if (bgSelect.value) {
+                const themeKey = (document.getElementById('themeSelect') && document.getElementById('themeSelect').value) || 'default';
+                applyBackground(bgSelect.value, themeKey);
+            }
+        });
+
+        bottomSlider.addEventListener('input', () => {
+            bgOverlayOpacityBottom = parseFloat(bottomSlider.value) || 0;
+            try { localStorage.setItem('bgOpacityBottom', String(bgOverlayOpacityBottom)); } catch (_) {}
+            if (bottomLabel) bottomLabel.textContent = `下层透明度 (${bgOverlayOpacityBottom.toFixed(2)})`;
+            if (bgSelect.value) {
+                const themeKey = (document.getElementById('themeSelect') && document.getElementById('themeSelect').value) || 'default';
+                applyBackground(bgSelect.value, themeKey);
+            }
+        });
+
+        bgSelect.addEventListener('change', updateDisabled);
+    }
+
     async function loadBackgroundsForTheme(themeKey, autoApplyFirst = false) {
         const list = await fetchBackgrounds(themeKey);
         const bgSelect = document.getElementById('bgSelect');
@@ -522,22 +622,30 @@ window.addEventListener('load', () => {
             let savedUrl = '';
             try { savedUrl = localStorage.getItem(`selectedBgUrl_${themeKey}`) || ''; } catch (_) {}
 
+            const topSlider = document.getElementById('bgOpacityTop');
+            const bottomSlider = document.getElementById('bgOpacityBottom');
+            const setDisabled = (disabled) => {
+                if (topSlider) topSlider.disabled = disabled;
+                if (bottomSlider) bottomSlider.disabled = disabled;
+            };
+
             if (savedUrl && list.some(x => x.url === savedUrl)) {
                 bgSelect.value = savedUrl;
                 applyBackground(savedUrl, themeKey);
+                setDisabled(false);
                 return;
             }
-            // 已保存但当前主题无对应文件，清空并回退默认
-            savedUrl = '';
 
             if (autoApplyFirst && list.length > 0) {
                 // 仅当主题目录下有文件时，才自动应用第一张
                 bgSelect.value = list[0].url;
                 applyBackground(list[0].url, themeKey);
+                setDisabled(false);
             } else {
                 // 找不到对应主题背景 → 选择“默认”（不加载背景）
                 bgSelect.value = '';
                 applyBackground('', themeKey);
+                setDisabled(true);
             }
         }
     }
@@ -711,7 +819,12 @@ window.addEventListener('load', () => {
             const savedTheme = localStorage.getItem('selectedTheme');
             const themeStylesheet = document.getElementById('themeStylesheet');
             const bgSelect = document.getElementById('bgSelect');
-            const applyBgBtn = document.getElementById('applyBgBtn');
+            if (bgSelect) {
+                bgSelect.addEventListener('change', () => {
+                    const url = bgSelect.value;
+                    applyBackground(url || '', themeSelect.value);
+                });
+            }
             if (savedTheme) {
                 themeSelect.value = savedTheme;
                 if (savedTheme === 'default') {
@@ -726,13 +839,8 @@ window.addEventListener('load', () => {
                 loadBackgroundsForTheme('default', true);
             }
 
-            if (applyBgBtn && bgSelect) {
-                applyBgBtn.addEventListener('click', () => {
-                    const url = bgSelect.value;
-                    applyBackground(url || '', themeSelect.value);
-                });
-            }
         }
+        setupBgOpacityControls();
     }
     
     function updateTransformMatrix() {
