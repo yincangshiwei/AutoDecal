@@ -6,7 +6,7 @@
   <title>3D环绕贴图编辑器</title>
   <link href="https://cdnjs.cloudflare.com/ajax/libs/tailwindcss/2.2.19/tailwind.min.css" rel="stylesheet">
   <link href="https://fonts.loli.net/css?family=Noto+Sans+SC:400,500,700&display=swap" rel="stylesheet">
-  <link id="themeStylesheet" rel="stylesheet" href="">
+  <link id="themeStylesheet" rel="stylesheet" href="{{ url_for('static', filename='themes/default.css') }}">
   <style>
     body {
       font-family: 'Noto Sans SC', sans-serif;
@@ -235,15 +235,24 @@
           <button id="resetBtn" class="px-4 py-2 rounded-md bg-gray-700 text-gray-300 hover:bg-gray-600 transition">重置</button>
           <button id="exportBtn" class="px-4 py-2 rounded-md btn-gradient">导出图片</button>
         </div>
-        <div class="flex items-center gap-2">
-          <label class="text-sm font-medium text-gray-300">主题:</label>
-          <select id="themeSelect" class="theme-select px-3 py-2 rounded-md">
-            <option value="default">默认主题</option>
-            <option value="christmas">圣诞主题</option>
-            <option value="halloween">万圣节主题</option>
-            <option value="easter">复活节主题</option>
-            <option value="spring-festival">春节主题</option>
-          </select>
+        <div class="flex items-center gap-4">
+          <div class="flex items-center gap-2">
+            <label class="text-sm font-medium text-gray-300">主题:</label>
+            <select id="themeSelect" class="theme-select px-3 py-2 rounded-md">
+              <option value="default">默认主题</option>
+              <option value="christmas">圣诞主题</option>
+              <option value="halloween">万圣节主题</option>
+              <option value="easter">复活节主题</option>
+              <option value="spring-festival">春节主题</option>
+            </select>
+          </div>
+          <div class="flex items-center gap-2">
+            <label class="text-sm font-medium text-gray-300">背景图:</label>
+            <select id="bgSelect" class="theme-select px-3 py-2 rounded-md min-w-[180px]">
+              <option value="">默认</option>
+            </select>
+            <button id="applyBgBtn" class="px-3 py-2 rounded-md bg-gray-700 text-gray-300 hover:bg-gray-600 transition">应用背景</button>
+          </div>
         </div>
       </div>
     </div>

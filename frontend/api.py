@@ -5,6 +5,7 @@
 from flask import Blueprint, jsonify, request, session
 from backend.database import DatabaseManager
 from backend.auth import AccessCodeManager, access_code_required
+import time
 
 def create_api_blueprint():
     """创建API蓝图"""
@@ -194,5 +195,30 @@ def create_api_blueprint():
                 'success': False,
                 'message': f'导出失败: {str(e)}'
             })
+    
+    @api.route('/theme-backgrounds')
+    @access_code_required
+    def theme_backgrounds():
+        """按主题列出可用背景图"""
+        try:
+            import os
+            from flask import current_app, url_for
+            theme = request.args.get('theme', default='default', type=str)
+            folder = os.path.join(current_app.root_path, 'static', 'images', 'themes_bg')
+            results = []
+            if os.path.isdir(folder):
+                allowed = {'.png', '.jpg', '.jpeg', '.webp', '.gif', '.svg'}
+                prefix = f"{theme.lower()}_bg"
+                for name in sorted(os.listdir(folder)):
+                    lower = name.lower()
+                    _, ext = os.path.splitext(lower)
+                    if ext in allowed and lower.startswith(prefix):
+                        results.append({
+                            'name': name,
+                            'url': url_for('static', filename=f'images/themes_bg/{name}')
+                        })
+            return jsonify({'success': True, 'data': results})
+        except Exception as e:
+            return jsonify({'success': False, 'message': f'获取背景图失败: {str(e)}'})
     
     return api

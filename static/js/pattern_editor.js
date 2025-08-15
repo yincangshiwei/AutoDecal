@@ -447,6 +447,100 @@ window.addEventListener('load', () => {
     }
 
     // --- Part 5: UI事件监听器 ---
+    // 背景图：获取/应用/按主题加载
+    async function fetchBackgrounds(themeKey) {
+        try {
+            const resp = await fetch(`/api/theme-backgrounds?theme=${encodeURIComponent(themeKey)}`);
+            const json = await resp.json();
+            if (json && json.success && Array.isArray(json.data)) {
+                return json.data;
+            }
+        } catch (error) {
+            console.error('获取背景图失败:', error);
+        }
+        return [];
+    }
+
+    function applyBackground(url, themeKey) {
+        const body = document.body;
+        const container = document.querySelector('.editor-container');
+
+        if (url) {
+            // 叠加半透明白，保持白色为主；同时将背景应用到 body 与 editor 容器
+            const layered = `linear-gradient(rgba(255,255,255,0.88), rgba(255,255,255,0.88)), url('${url}')`;
+
+            if (body) {
+                body.style.setProperty('background-image', layered, 'important');
+                body.style.setProperty('background-size', 'cover, cover', 'important');
+                body.style.setProperty('background-position', 'center center, center center', 'important');
+                body.style.setProperty('background-repeat', 'no-repeat, no-repeat', 'important');
+                body.style.setProperty('background-attachment', 'fixed, fixed', 'important');
+            }
+            if (container) {
+                container.style.setProperty('background-image', layered, 'important');
+                container.style.setProperty('background-size', 'cover, cover', 'important');
+                container.style.setProperty('background-position', 'center center, center center', 'important');
+                container.style.setProperty('background-repeat', 'no-repeat, no-repeat', 'important');
+            }
+        } else {
+            // 恢复为纯色（移除覆盖样式）
+            if (body) {
+                body.style.removeProperty('background-image');
+                body.style.removeProperty('background-size');
+                body.style.removeProperty('background-position');
+                body.style.removeProperty('background-repeat');
+                body.style.removeProperty('background-attachment');
+            }
+            if (container) {
+                container.style.removeProperty('background-image');
+                container.style.removeProperty('background-size');
+                container.style.removeProperty('background-position');
+                container.style.removeProperty('background-repeat');
+            }
+        }
+
+        if (themeKey) {
+            try {
+                localStorage.setItem(`selectedBgUrl_${themeKey}`, url || '');
+            } catch (_) {}
+        }
+    }
+
+    async function loadBackgroundsForTheme(themeKey, autoApplyFirst = false) {
+        const list = await fetchBackgrounds(themeKey);
+        const bgSelect = document.getElementById('bgSelect');
+        if (bgSelect) {
+            // “默认”=不加载背景
+            bgSelect.innerHTML = '<option value="">默认</option>';
+            list.forEach(item => {
+                const opt = document.createElement('option');
+                opt.value = item.url;
+                opt.textContent = item.name;
+                bgSelect.appendChild(opt);
+            });
+
+            let savedUrl = '';
+            try { savedUrl = localStorage.getItem(`selectedBgUrl_${themeKey}`) || ''; } catch (_) {}
+
+            if (savedUrl && list.some(x => x.url === savedUrl)) {
+                bgSelect.value = savedUrl;
+                applyBackground(savedUrl, themeKey);
+                return;
+            }
+            // 已保存但当前主题无对应文件，清空并回退默认
+            savedUrl = '';
+
+            if (autoApplyFirst && list.length > 0) {
+                // 仅当主题目录下有文件时，才自动应用第一张
+                bgSelect.value = list[0].url;
+                applyBackground(list[0].url, themeKey);
+            } else {
+                // 找不到对应主题背景 → 选择“默认”（不加载背景）
+                bgSelect.value = '';
+                applyBackground('', themeKey);
+            }
+        }
+    }
     function setupUIListeners() {
         const controls = {
             'distortion': 'uDistortion',
@@ -598,27 +692,45 @@ window.addEventListener('load', () => {
         // 主题切换功能
         const themeSelect = document.getElementById('themeSelect');
         if (themeSelect) {
-            themeSelect.addEventListener('change', (e) => {
+            themeSelect.addEventListener('change', async (e) => {
                 const selectedTheme = e.target.value;
                 const themeStylesheet = document.getElementById('themeStylesheet');
                 
                 if (selectedTheme === 'default') {
-                    themeStylesheet.href = '';
+                    themeStylesheet.href = `/static/themes/default.css`;
                 } else {
                     themeStylesheet.href = `/static/themes/${selectedTheme}.css`;
                 }
                 
                 localStorage.setItem('selectedTheme', selectedTheme);
+                // 切换主题后只尝试加载该主题前缀背景；若没有则回退“默认”（不加载）
+                await loadBackgroundsForTheme(selectedTheme, true);
             });
 
             // 恢复主题选择
             const savedTheme = localStorage.getItem('selectedTheme');
+            const themeStylesheet = document.getElementById('themeStylesheet');
+            const bgSelect = document.getElementById('bgSelect');
+            const applyBgBtn = document.getElementById('applyBgBtn');
             if (savedTheme) {
-                const themeStylesheet = document.getElementById('themeStylesheet');
                 themeSelect.value = savedTheme;
-                if (savedTheme !== 'default') {
+                if (savedTheme === 'default') {
+                    themeStylesheet.href = `/static/themes/default.css`;
+                } else {
                     themeStylesheet.href = `/static/themes/${savedTheme}.css`;
                 }
+                loadBackgroundsForTheme(savedTheme, true);
+            } else {
+                themeSelect.value = 'default';
+                themeStylesheet.href = `/static/themes/default.css`;
+                loadBackgroundsForTheme('default', true);
+            }
+
+            if (applyBgBtn && bgSelect) {
+                applyBgBtn.addEventListener('click', () => {
+                    const url = bgSelect.value;
+                    applyBackground(url || '', themeSelect.value);
+                });
             }
         }
     }
