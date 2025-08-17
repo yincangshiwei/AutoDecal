@@ -53,6 +53,9 @@ class DataManager {
     }
 }
 
+// 将translations暴露给全局作用域，供其他脚本使用
+window.translations = window.translations || {};
+
 // 主编辑器类 - 基于 templates/ref/editor.js 的3D引擎
 window.addEventListener('load', () => {
     // 等待所有预加载图片完全加载
@@ -667,7 +670,14 @@ window.addEventListener('load', () => {
                     const value = parseFloat(e.target.value);
                     state[id] = value;
                     const label = input.previousElementSibling;
-                    if (label) label.textContent = `${label.textContent.split('(')[0].trim()} (${value.toFixed(3)})`;
+                    if (label) {
+                        const key = label.getAttribute('data-i18n');
+                        const currentLang = localStorage.getItem('language') || 'zh-CN';
+                        const baseText = window.translations && window.translations[currentLang] && window.translations[currentLang][key] 
+                            ? window.translations[currentLang][key] 
+                            : label.textContent.split('(')[0].trim();
+                        label.textContent = `${baseText} (${value.toFixed(3)})`;
+                    }
                     
                     if (controls[id]) {
                         shaderMaterial.uniforms[controls[id]].value = value;

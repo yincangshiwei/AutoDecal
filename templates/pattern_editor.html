@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>3D环绕贴图编辑器</title>
+  <title data-i18n="page-title">3D环绕贴图编辑器</title>
   <link href="https://cdnjs.cloudflare.com/ajax/libs/tailwindcss/2.2.19/tailwind.min.css" rel="stylesheet">
   <link href="https://fonts.loli.net/css?family=Noto+Sans+SC:400,500,700&display=swap" rel="stylesheet">
   <link id="themeStylesheet" rel="stylesheet" href="{{ url_for('static', filename='themes/default.css') }}">
@@ -152,12 +152,20 @@
 </head>
 <body class="py-0 px-0">
   <div class="editor-container p-6">
-    <h1 class="text-4xl font-bold text-center mb-8 text-white">3D环绕贴图编辑器</h1>
+    <!-- 语言切换按钮 -->
+    <div class="flex justify-between items-center mb-6">
+      <h1 class="text-4xl font-bold text-white" data-i18n="title">3D环绕贴图编辑器</h1>
+      <div class="flex items-center gap-2">
+        <button id="langBtn" class="px-3 py-1 rounded-md bg-gray-700 text-white hover:bg-gray-600 transition text-sm">
+          EN
+        </button>
+      </div>
+    </div>
     
     <div class="editor-layout flex flex-wrap gap-6 mb-6">
       <!-- 左侧贴图列表 -->
       <div class="pattern-panel w-1/4 min-w-[250px]">
-        <h2 class="text-xl font-semibold mb-4 text-white">贴图图案</h2>
+        <h2 class="text-xl font-semibold mb-4 text-white" data-i18n="patterns">贴图图案</h2>
         <div class="pattern-list-wrap">
           <div class="pattern-list grid grid-cols-3 gap-3 p-3 bg-gray-800 rounded-lg">
           </div>
@@ -166,10 +174,10 @@
 
       <!-- 中间预览区域 -->
       <div class="preview-panel flex-1 min-w-[400px] max-w-[450px]">
-        <h2 class="text-xl font-semibold mb-4 text-white">效果预览</h2>
+        <h2 class="text-xl font-semibold mb-4 text-white" data-i18n="preview">效果预览</h2>
         <div class="relative border-2 border-gray-700 rounded-lg overflow-hidden canvas-container mx-auto" style="width: 450px; height: 450px;">
           <canvas id="editorCanvas" class="absolute inset-0 w-full h-full"></canvas>
-          <div id="canvasPlaceholder" class="absolute inset-0 flex items-center justify-center text-gray-400">
+          <div id="canvasPlaceholder" class="absolute inset-0 flex items-center justify-center text-gray-400" data-i18n="placeholder">
             请选择贴图和产品图开始编辑
           </div>
         </div>
@@ -177,9 +185,9 @@
 
       <!-- 右侧产品图列表 -->
       <div class="product-panel w-1/5 min-w-[200px]">
-        <h2 class="text-xl font-semibold mb-4 text-white">产品图</h2>
+        <h2 class="text-xl font-semibold mb-4 text-white" data-i18n="products">产品图</h2>
         <select id="categorySelect" class="category-select mb-4">
-          <option value="all">全部产品</option>
+          <option value="all" data-i18n="all-products">全部产品</option>
         </select>
         <div class="product-list-wrap">
           <div class="product-list space-y-3 p-3 bg-gray-800 rounded-lg">
@@ -190,26 +198,26 @@
 
     <!-- 下方控制区域 -->
     <div class="control-panel p-6">
-      <h2 class="text-xl font-semibold mb-4 text-white">图案参数控制</h2>
+      <h2 class="text-xl font-semibold mb-4 text-white" data-i18n="controls">图案参数控制</h2>
       <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <div>
-          <label class="block text-sm font-medium text-gray-300 mb-1">形变强度 (0.300)</label>
+          <label class="block text-sm font-medium text-gray-300 mb-1" data-i18n="distortion">形变强度 (0.300)</label>
           <input type="range" id="distortion" min="0" max="1" step="0.001" value="0.300" class="w-full slider-thumb">
         </div>
         <div>
-          <label class="block text-sm font-medium text-gray-300 mb-1">透明度 (1.000)</label>
+          <label class="block text-sm font-medium text-gray-300 mb-1" data-i18n="opacity">透明度 (1.000)</label>
           <input type="range" id="opacity" min="0" max="1" step="0.001" value="1.000" class="w-full slider-thumb">
         </div>
         <div>
-          <label class="block text-sm font-medium text-gray-300 mb-1">水平倾斜 (0.000)</label>
+          <label class="block text-sm font-medium text-gray-300 mb-1" data-i18n="skew-x">水平倾斜 (0.000)</label>
           <input type="range" id="skewX" min="-1" max="1" step="0.001" value="0.000" class="w-full slider-thumb">
         </div>
         <div>
-          <label class="block text-sm font-medium text-gray-300 mb-1">垂直倾斜 (0.000)</label>
+          <label class="block text-sm font-medium text-gray-300 mb-1" data-i18n="skew-y">垂直倾斜 (0.000)</label>
           <input type="range" id="skewY" min="-1" max="1" step="0.001" value="0.000" class="w-full slider-thumb">
         </div>
         <div>
-          <label class="block text-sm font-medium text-gray-300 mb-1">混合模式</label>
+          <label class="block text-sm font-medium text-gray-300 mb-1" data-i18n="blend-mode">混合模式</label>
           <select id="blendMode" class="blend-mode-select w-full">
             <option value="normal">Normal</option>
             <option value="multiply">Multiply</option>
@@ -225,35 +233,35 @@
           </select>
         </div>
         <div>
-          <label class="block text-sm font-medium text-gray-300 mb-1">深度阈值 (0.700)</label>
+          <label class="block text-sm font-medium text-gray-300 mb-1" data-i18n="depth-threshold">深度阈值 (0.700)</label>
           <input type="range" id="depthThreshold" min="0" max="1" step="0.001" value="0.700" class="w-full slider-thumb">
         </div>
         <div>
-          <label class="block text-sm font-medium text-gray-300 mb-1">透视强度 (0.000)</label>
+          <label class="block text-sm font-medium text-gray-300 mb-1" data-i18n="perspective">透视强度 (0.000)</label>
           <input type="range" id="perspective" min="0" max="2" step="0.001" value="0.000" class="w-full slider-thumb">
         </div>
       </div>
 
       <div class="flex flex-wrap justify-between items-center gap-4 mt-6">
         <div class="flex gap-4">
-          <button id="resetBtn" class="px-4 py-2 rounded-md bg-gray-700 text-gray-300 hover:bg-gray-600 transition">重置</button>
-          <button id="exportBtn" class="px-4 py-2 rounded-md btn-gradient">导出图片</button>
+          <button id="resetBtn" class="px-4 py-2 rounded-md bg-gray-700 text-gray-300 hover:bg-gray-600 transition" data-i18n="reset">重置</button>
+          <button id="exportBtn" class="px-4 py-2 rounded-md btn-gradient" data-i18n="export">导出图片</button>
         </div>
         <div class="flex items-center gap-4">
           <div class="flex items-center gap-2">
-            <label class="text-sm font-medium text-gray-300">主题:</label>
+            <label class="text-sm font-medium text-gray-300" data-i18n="theme">主题:</label>
             <select id="themeSelect" class="theme-select px-3 py-2 rounded-md">
-              <option value="default">默认主题</option>
-              <option value="christmas">圣诞主题</option>
-              <option value="halloween">万圣节主题</option>
-              <option value="easter">复活节主题</option>
-              <option value="spring-festival">春节主题</option>
+              <option value="default" data-i18n="theme-default">默认主题</option>
+              <option value="christmas" data-i18n="theme-christmas">圣诞主题</option>
+              <option value="halloween" data-i18n="theme-halloween">万圣节主题</option>
+              <option value="easter" data-i18n="theme-easter">复活节主题</option>
+              <option value="spring-festival" data-i18n="theme-spring-festival">春节主题</option>
             </select>
           </div>
           <div class="flex items-center gap-2">
-            <label class="text-sm font-medium text-gray-300">背景图:</label>
+            <label class="text-sm font-medium text-gray-300" data-i18n="background">背景图:</label>
             <select id="bgSelect" class="theme-select px-3 py-2 rounded-md min-w-[180px]">
-              <option value="">默认</option>
+              <option value="" data-i18n="default">默认</option>
             </select>
           </div>
         </div>
@@ -266,6 +274,114 @@
   </div>
 
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script>
+    // 多语言配置
+    const translations = {
+      'zh-CN': {
+        'page-title': '3D环绕贴图编辑器',
+        'title': '3D环绕贴图编辑器',
+        'patterns': '贴图图案',
+        'preview': '效果预览',
+        'products': '产品图',
+        'all-products': '全部产品',
+        'controls': '图案参数控制',
+        'distortion': '形变强度',
+        'opacity': '透明度',
+        'skew-x': '水平倾斜',
+        'skew-y': '垂直倾斜',
+        'blend-mode': '混合模式',
+        'depth-threshold': '深度阈值',
+        'perspective': '透视强度',
+        'reset': '重置',
+        'export': '导出图片',
+        'theme': '主题:',
+        'background': '背景图:',
+        'default': '默认',
+        'theme-default': '默认主题',
+        'theme-christmas': '圣诞主题',
+        'theme-halloween': '万圣节主题',
+        'theme-easter': '复活节主题',
+        'theme-spring-festival': '春节主题',
+        'placeholder': '请选择贴图和产品图开始编辑'
+      },
+      'en': {
+        'page-title': '3D Wrap Texture Editor',
+        'title': '3D Wrap Texture Editor',
+        'patterns': 'Patterns',
+        'preview': 'Preview',
+        'products': 'Products',
+        'all-products': 'All Products',
+        'controls': 'Pattern Controls',
+        'distortion': 'Distortion',
+        'opacity': 'Opacity',
+        'skew-x': 'Horizontal Skew',
+        'skew-y': 'Vertical Skew',
+        'blend-mode': 'Blend Mode',
+        'depth-threshold': 'Depth Threshold',
+        'perspective': 'Perspective',
+        'reset': 'Reset',
+        'export': 'Export Image',
+        'theme': 'Theme:',
+        'background': 'Background:',
+        'default': 'Default',
+        'theme-default': 'Default Theme',
+        'theme-christmas': 'Christmas Theme',
+        'theme-halloween': 'Halloween Theme',
+        'theme-easter': 'Easter Theme',
+        'theme-spring-festival': 'Spring Festival Theme',
+        'placeholder': 'Please select pattern and product to start editing'
+      }
+    };
+
+    // 语言切换功能
+    let currentLang = localStorage.getItem('language') || 'zh-CN';
+    
+    function updateLanguage(lang) {
+      currentLang = lang;
+      localStorage.setItem('language', lang);
+      
+      // 更新HTML lang属性
+      document.documentElement.lang = lang;
+      
+      // 更新页面标题
+      document.title = translations[lang]['page-title'];
+      
+      // 更新所有带有data-i18n属性的元素
+      document.querySelectorAll('[data-i18n]').forEach(element => {
+        const key = element.getAttribute('data-i18n');
+        if (translations[lang][key]) {
+          // 对于包含数值的标签，保留数值部分
+          if (element.tagName === 'LABEL' && element.textContent.includes('(')) {
+            const match = element.textContent.match(/\(([\d.]+)\)/);
+            const value = match ? match[1] : '';
+            element.textContent = translations[lang][key] + (value ? ` (${value})` : '');
+          } else {
+            element.textContent = translations[lang][key];
+          }
+        }
+      });
+      
+      // 更新语言按钮文本
+      const langBtn = document.getElementById('langBtn');
+      if (langBtn) {
+        langBtn.textContent = lang === 'zh-CN' ? 'EN' : '中文';
+      }
+    }
+
+    // 初始化语言
+    document.addEventListener('DOMContentLoaded', function() {
+      updateLanguage(currentLang);
+      
+      // 语言切换按钮事件
+      const langBtn = document.getElementById('langBtn');
+      if (langBtn) {
+        langBtn.addEventListener('click', function() {
+          const newLang = currentLang === 'zh-CN' ? 'en' : 'zh-CN';
+          updateLanguage(newLang);
+        });
+      }
+    });
+  </script>
   <script src="{{ url_for('static', filename='js/pattern_editor.js') }}"></script>
 </body>
 </html>
