@@ -610,14 +610,13 @@ window.addEventListener('load', () => {
         const list = await fetchBackgrounds(themeKey);
         const bgSelect = document.getElementById('bgSelect');
         if (bgSelect) {
-            // “默认”=不加载背景
+            // "默认"=不加载背景
             bgSelect.innerHTML = '<option value="">默认</option>';
             list.forEach(item => {
                 const opt = document.createElement('option');
                 opt.value = item.url;
-                // 只显示文件名，不显示扩展名
-                const nameWithoutExt = item.name.replace(/\.[^/.]+$/, "");
-                opt.textContent = nameWithoutExt;
+                // 显示背景图名称，不需要去除扩展名（数据库中存储的是完整名称）
+                opt.textContent = item.name;
                 bgSelect.appendChild(opt);
             });
 
@@ -639,12 +638,12 @@ window.addEventListener('load', () => {
             }
 
             if (autoApplyFirst && list.length > 0) {
-                // 仅当主题目录下有文件时，才自动应用第一张
+                // 仅当主题下有背景图时，才自动应用第一张
                 bgSelect.value = list[0].url;
                 applyBackground(list[0].url, themeKey);
                 setDisabled(false);
             } else {
-                // 找不到对应主题背景 → 选择“默认”（不加载背景）
+                // 找不到对应主题背景 → 选择"默认"（不加载背景）
                 bgSelect.value = '';
                 applyBackground('', themeKey);
                 setDisabled(true);

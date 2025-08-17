@@ -141,22 +141,20 @@ def create_api_blueprint():
     def theme_backgrounds():
         """按主题列出可用背景图"""
         try:
-            import os
-            from flask import current_app, url_for
             theme = request.args.get('theme', default='default', type=str)
-            folder = os.path.join(current_app.root_path, 'static', 'images', 'themes_bg')
+            # 从数据库获取主题背景图
+            backgrounds = DatabaseManager.get_theme_backgrounds(theme_name=theme)
+            
             results = []
-            if os.path.isdir(folder):
-                allowed = {'.png', '.jpg', '.jpeg', '.webp', '.gif', '.svg'}
-                prefix = f"{theme.lower()}_bg"
-                for name in sorted(os.listdir(folder)):
-                    lower = name.lower()
-                    _, ext = os.path.splitext(lower)
-                    if ext in allowed and lower.startswith(prefix):
-                        results.append({
-                            'name': name,
-                            'url': url_for('static', filename=f'images/themes_bg/{name}')
-                        })
+            for bg in backgrounds:
+                results.append({
+                    'id': bg['id'],
+                    'name': bg['background_name'],
+                    'url': bg['file_path'],
+                    'theme': bg['theme_name'],
+                    'file_size': bg['file_size']
+                })
+            
             return jsonify({'success': True, 'data': results})
         except Exception as e:
             return jsonify({'success': False, 'message': f'获取背景图失败: {str(e)}'})
