@@ -148,6 +148,65 @@
         grid-template-columns: repeat(2, 1fr);
       }
     }
+    /* 主题设置弹窗样式（配合 default.css 变量） */
+    .theme-modal { 
+      background: var(--holiday-surface, #ffffff);
+      color: var(--text-primary, #0f172a);
+      border: 1px solid var(--border-color, #e5e7eb);
+      box-shadow: var(--shadow, 0 12px 24px rgba(15, 23, 42, 0.08));
+      border-radius: 12px;
+      width: 400px;
+    }
+    .theme-modal-backdrop {
+      background: rgba(15, 23, 42, 0.55);
+      backdrop-filter: blur(2px);
+    }
+    .theme-modal-close {
+      background: linear-gradient(180deg, #ffffff, #f8fafc);
+      border: 1px solid var(--border-color, #e5e7eb);
+      color: var(--text-primary, #0f172a);
+      width: 32px;
+      height: 32px;
+      border-radius: 9999px;
+      line-height: 30px;
+      text-align: center;
+    }
+    /* 弹窗内增强滑块尺寸（仅作用于主题设置） */
+    .theme-modal .modal-slider { width: 100%; }
+    .theme-modal .modal-slider::-webkit-slider-runnable-track {
+      height: 12px;
+      background: linear-gradient(90deg, #eef2f7, #ffffff);
+      border-radius: 999px;
+      border: 1px solid var(--border-color, #e5e7eb);
+      box-shadow: inset 2px 2px 4px rgba(15,23,42,0.06), inset -2px -2px 4px rgba(255,255,255,0.8);
+    }
+    .theme-modal .modal-slider::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      background: radial-gradient(circle at 30% 30%, #fff, #fecaca 60%, #dc2626 100%);
+      border: 2px solid #ffffff;
+      box-shadow: 0 0 0 4px rgba(220,38,38,0.12), 0 8px 14px rgba(15,23,42,0.18);
+      margin-top: -9px; /* 居中在 12px 轨道上 */
+      cursor: pointer;
+    }
+    .theme-modal .modal-slider::-moz-range-track {
+      height: 12px;
+      background: linear-gradient(90deg, #eef2f7, #ffffff);
+      border-radius: 999px;
+      border: 1px solid var(--border-color, #e5e7eb);
+      box-shadow: inset 2px 2px 4px rgba(15,23,42,0.06), inset -2px -2px 4px rgba(255,255,255,0.8);
+    }
+    .theme-modal .modal-slider::-moz-range-thumb {
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      background: radial-gradient(circle at 30% 30%, #fff, #fecaca 60%, #dc2626 100%);
+      border: 2px solid #ffffff;
+      box-shadow: 0 0 0 4px rgba(220,38,38,0.12), 0 8px 14px rgba(15,23,42,0.18);
+      cursor: pointer;
+    }
   </style>
 </head>
 <body class="py-0 px-0">
@@ -156,6 +215,7 @@
     <div class="flex justify-between items-center mb-6">
       <h1 class="text-4xl font-bold text-white" data-i18n="title">3D环绕贴图编辑器</h1>
       <div class="flex items-center gap-2">
+        <button id="themeSettingsBtn" class="px-3 py-1 rounded-md bg-gray-700 text-white hover:bg-gray-600 transition text-sm" data-i18n="theme-settings">主题设置</button>
         <button id="langBtn" class="px-3 py-1 rounded-md bg-gray-700 text-white hover:bg-gray-600 transition text-sm">
           EN
         </button>
@@ -247,24 +307,36 @@
           <button id="resetBtn" class="px-4 py-2 rounded-md bg-gray-700 text-gray-300 hover:bg-gray-600 transition" data-i18n="reset">重置</button>
           <button id="exportBtn" class="px-4 py-2 rounded-md btn-gradient" data-i18n="export">导出图片</button>
         </div>
-        <div class="flex items-center gap-4">
-          <div class="flex items-center gap-2">
-            <label class="text-sm font-medium text-gray-300" data-i18n="theme">主题:</label>
-            <select id="themeSelect" class="theme-select px-3 py-2 rounded-md">
-              <option value="default" data-i18n="theme-default">默认主题</option>
-              <option value="christmas" data-i18n="theme-christmas">圣诞主题</option>
-              <option value="halloween" data-i18n="theme-halloween">万圣节主题</option>
-              <option value="easter" data-i18n="theme-easter">复活节主题</option>
-              <option value="spring-festival" data-i18n="theme-spring-festival">春节主题</option>
-            </select>
-          </div>
-          <div class="flex items-center gap-2">
-            <label class="text-sm font-medium text-gray-300" data-i18n="background">背景图:</label>
-            <select id="bgSelect" class="theme-select px-3 py-2 rounded-md min-w-[180px]">
-              <option value="" data-i18n="default">默认</option>
-            </select>
-          </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 主题设置弹窗 -->
+  <div id="themeSettingsModal" class="hidden fixed inset-0 z-50 flex items-center justify-center">
+    <div class="theme-modal-backdrop absolute inset-0"></div>
+    <div class="theme-modal relative z-10 max-w-lg w-[90%] rounded-xl p-6">
+      <div class="flex justify-between items-center mb-4">
+        <h3 class="text-lg font-semibold" data-i18n="theme-settings-title">主题设置</h3>
+        <button id="themeSettingsClose" class="theme-modal-close" aria-label="Close">×</button>
+      </div>
+      <div class="space-y-4">
+        <div class="space-y-2">
+          <label class="text-sm font-medium" data-i18n="theme">主题:</label>
+          <select id="themeSelect" class="theme-select px-3 py-2 rounded-md w-full">
+            <option value="default" data-i18n="theme-default">默认主题</option>
+            <option value="christmas" data-i18n="theme-christmas">圣诞主题</option>
+            <option value="halloween" data-i18n="theme-halloween">万圣节主题</option>
+            <option value="easter" data-i18n="theme-easter">复活节主题</option>
+            <option value="spring-festival" data-i18n="theme-spring-festival">春节主题</option>
+          </select>
         </div>
+        <div class="space-y-2">
+          <label class="text-sm font-medium" data-i18n="background">背景图:</label>
+          <select id="bgSelect" class="theme-select px-3 py-2 rounded-md w-full">
+            <option value="" data-i18n="default">默认</option>
+          </select>
+        </div>
+        <!-- 上下层透明度滑块将由脚本插入到背景选择控件后 -->
       </div>
     </div>
   </div>
@@ -302,7 +374,9 @@
         'theme-halloween': '万圣节主题',
         'theme-easter': '复活节主题',
         'theme-spring-festival': '春节主题',
-        'placeholder': '请选择贴图和产品图开始编辑'
+        'placeholder': '请选择贴图和产品图开始编辑',
+        'theme-settings': '主题设置',
+        'theme-settings-title': '主题设置'
       },
       'en': {
         'page-title': '3D Wrap Texture Editor',
@@ -329,7 +403,9 @@
         'theme-halloween': 'Halloween Theme',
         'theme-easter': 'Easter Theme',
         'theme-spring-festival': 'Spring Festival Theme',
-        'placeholder': 'Please select pattern and product to start editing'
+        'placeholder': 'Please select pattern and product to start editing',
+        'theme-settings': 'Theme Settings',
+        'theme-settings-title': 'Theme Settings'
       }
     };
 
@@ -379,6 +455,21 @@
           const newLang = currentLang === 'zh-CN' ? 'en' : 'zh-CN';
           updateLanguage(newLang);
         });
+      }
+
+      // 主题设置弹窗开关
+      const themeBtn = document.getElementById('themeSettingsBtn');
+      const modal = document.getElementById('themeSettingsModal');
+      const closeBtn = document.getElementById('themeSettingsClose');
+      const backdrop = modal ? modal.querySelector('.theme-modal-backdrop') : null;
+      if (themeBtn && modal) {
+        themeBtn.addEventListener('click', () => { modal.classList.remove('hidden'); });
+      }
+      if (closeBtn && modal) {
+        closeBtn.addEventListener('click', () => { modal.classList.add('hidden'); });
+      }
+      if (backdrop && modal) {
+        backdrop.addEventListener('click', () => { modal.classList.add('hidden'); });
       }
     });
   </script>

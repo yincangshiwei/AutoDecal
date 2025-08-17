@@ -526,11 +526,11 @@ window.addEventListener('load', () => {
 
         if (!topSlider || !bottomSlider) {
             const wrap = document.createElement('div');
-            wrap.className = 'flex items-center gap-3 flex-wrap';
+            wrap.className = 'flex flex-col gap-3 w-full';
 
             // 上端
             const g1 = document.createElement('div');
-            g1.className = 'flex items-center gap-2';
+            g1.className = 'flex flex-col items-start gap-2 w-full';
             topLabel = document.createElement('label');
             topLabel.id = 'bgOpacityTopLabel';
             topLabel.className = 'text-sm font-medium text-gray-300';
@@ -542,11 +542,11 @@ window.addEventListener('load', () => {
             topSlider.max = '1';
             topSlider.step = '0.01';
             topSlider.value = String(Number.isFinite(bgOverlayOpacityTop) ? bgOverlayOpacityTop : 0.3);
-            topSlider.className = 'w-28 slider-thumb';
+            topSlider.className = 'w-full slider-thumb modal-slider';
 
             // 下端
             const g2 = document.createElement('div');
-            g2.className = 'flex items-center gap-2';
+            g2.className = 'flex flex-col items-start gap-2 w-full';
             bottomLabel = document.createElement('label');
             bottomLabel.id = 'bgOpacityBottomLabel';
             bottomLabel.className = 'text-sm font-medium text-gray-300';
@@ -558,7 +558,7 @@ window.addEventListener('load', () => {
             bottomSlider.max = '1';
             bottomSlider.step = '0.01';
             bottomSlider.value = String(Number.isFinite(bgOverlayOpacityBottom) ? bgOverlayOpacityBottom : 0.3);
-            bottomSlider.className = 'w-28 slider-thumb';
+            bottomSlider.className = 'w-full slider-thumb modal-slider';
 
             g1.appendChild(topLabel);
             g1.appendChild(topSlider);
@@ -575,6 +575,9 @@ window.addEventListener('load', () => {
             // 同步显示值
             topSlider.value = String(Number.isFinite(bgOverlayOpacityTop) ? bgOverlayOpacityTop : 0.3);
             bottomSlider.value = String(Number.isFinite(bgOverlayOpacityBottom) ? bgOverlayOpacityBottom : 0.3);
+            // 复用时也保证纵向与全宽
+            topSlider.className = 'w-full slider-thumb modal-slider';
+            bottomSlider.className = 'w-full slider-thumb modal-slider';
             if (topLabel) topLabel.textContent = `上层透明度 (${(Number.isFinite(bgOverlayOpacityTop) ? bgOverlayOpacityTop : 0.3).toFixed(2)})`;
             if (bottomLabel) bottomLabel.textContent = `下层透明度 (${(Number.isFinite(bgOverlayOpacityBottom) ? bgOverlayOpacityBottom : 0.3).toFixed(2)})`;
         }
