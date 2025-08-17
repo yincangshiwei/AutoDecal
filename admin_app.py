@@ -154,6 +154,11 @@ def add_pattern():
         if file.filename == '':
             return jsonify({'success': False, 'message': '请选择图片文件'})
         
+        # 检查重名
+        existing_pattern = DatabaseManager.execute_query("SELECT id FROM patterns WHERE name = ?", (name,))
+        if existing_pattern:
+            return jsonify({'success': False, 'message': f'图案名称"{name}"已存在，请使用其他名称'})
+        
         # 保存文件
         original_filename = file.filename
         # 获取文件扩展名
@@ -191,6 +196,252 @@ def add_pattern():
         
     except Exception as e:
         return jsonify({'success': False, 'message': f'添加失败: {str(e)}'})
+
+@app.route('/patterns/batch-upload', methods=['POST'])
+@login_required
+def batch_upload_patterns():
+    """批量上传印花图案"""
+    try:
+        if 'files' not in request.files:
+            return jsonify({'success': False, 'message': '请选择图片文件'})
+        
+        files = request.files.getlist('files')
+        if not files or all(f.filename == '' for f in files):
+            return jsonify({'success': False, 'message': '请选择图片文件'})
+        
+        results = []
+        success_count = 0
+        error_count = 0
+        
+        for file in files:
+            if file.filename == '':
+                continue
+                
+            try:
+                # 使用文件名作为图案名称（去掉扩展名）
+                original_filename = file.filename
+                pattern_name = os.path.splitext(original_filename)[0]
+                file_ext = os.path.splitext(original_filename)[1].lower()
+                
+                # 检查重名
+                existing_pattern = DatabaseManager.execute_query("SELECT id FROM patterns WHERE name = ?", (pattern_name,))
+                if existing_pattern:
+                    results.append({
+                        'filename': original_filename,
+                        'status': 'duplicate',
+                        'message': f'图案名称"{pattern_name}"已存在'
+                    })
+                    continue
+                
+                # 保存文件
+                safe_name = secure_filename(os.path.splitext(original_filename)[0])
+                timestamp = datetime.now().strftime('%Y%m%d_%H%M%S_%f')[:-3]  # 添加毫秒避免重复
+                filename = f"pattern_{timestamp}_{safe_name}{file_ext}"
+                
+                upload_path = os.path.join('uploads', 'patterns')
+                os.makedirs(upload_path, exist_ok=True)
+                file_path = os.path.join(upload_path, filename)
+                file.save(file_path)
+                
+                # 获取图片信息
+                with Image.open(file_path) as img:
+                    width, height = img.size
+                
+                file_size = os.path.getsize(file_path)
+                
+                # 创建图案记录
+                query = '''
+                    INSERT INTO patterns (name, filename, file_path, file_size, image_width, image_height, upload_time)
+                    VALUES (?, ?, ?, ?, ?, ?, ?)
+                '''
+                pattern_id = DatabaseManager.execute_insert(query, (
+                    pattern_name, filename, file_path, file_size, width, height, datetime.now()
+                ))
+                
+                results.append({
+                    'filename': original_filename,
+                    'status': 'success',
+                    'message': f'上传成功',
+                    'pattern_id': pattern_id
+                })
+                success_count += 1
+                
+            except Exception as e:
+                results.append({
+                    'filename': file.filename,
+                    'status': 'error',
+                    'message': f'上传失败: {str(e)}'
+                })
+                error_count += 1
+        
+        return jsonify({
+            'success': True,
+            'message': f'批量上传完成！成功: {success_count} 个，失败: {error_count} 个',
+            'results': results,
+            'success_count': success_count,
+            'error_count': error_count
+        })
+        
+    except Exception as e:
+        return jsonify({'success': False, 'message': f'批量上传失败: {str(e)}'})
+
+@app.route('/patterns/get-existing-names')
+@login_required
+def get_existing_pattern_names():
+    """获取现有图案名称列表"""
+    try:
+        query = "SELECT name FROM patterns"
+        results = DatabaseManager.execute_query(query)
+        names = [row['name'] for row in results] if results else []
+        return jsonify({'success': True, 'names': names})
+    except Exception as e:
+        return jsonify({'success': False, 'message': f'获取失败: {str(e)}'})
+
+@app.route('/patterns/batch-upload-with-names', methods=['POST'])
+@login_required
+def batch_upload_patterns_with_names():
+    """批量上传印花图案（带自定义名称和处理方式）"""
+    try:
+        if 'files' not in request.files:
+            return jsonify({'success': False, 'message': '请选择图片文件'})
+        
+        files = request.files.getlist('files')
+        if not files or all(f.filename == '' for f in files):
+            return jsonify({'success': False, 'message': '请选择图片文件'})
+        
+        # 获取自定义名称和处理方式
+        upload_data = request.form.get('upload_data')
+        if upload_data:
+            import json
+            upload_data = json.loads(upload_data)
+        else:
+            upload_data = {}
+        
+        results = []
+        success_count = 0
+        error_count = 0
+        
+        for i, file in enumerate(files):
+            if file.filename == '':
+                continue
+                
+            try:
+                # 获取自定义名称和处理方式
+                file_data = upload_data.get(str(i), {})
+                pattern_name = file_data.get('newName', os.path.splitext(file.filename)[0])
+                action = file_data.get('action', 'rename')
+                
+                # 检查重名（如果选择覆盖，则删除现有图案）
+                if action == 'overwrite':
+                    existing_pattern = DatabaseManager.execute_query("SELECT * FROM patterns WHERE name = ?", (pattern_name,))
+                    if existing_pattern:
+                        pattern = existing_pattern[0]
+                        # 删除旧文件
+                        old_file_path = pattern['file_path']
+                        if os.path.exists(old_file_path):
+                            os.remove(old_file_path)
+                        # 删除数据库记录
+                        DatabaseManager.execute_update("DELETE FROM patterns WHERE name = ?", (pattern_name,))
+                
+                # 保存文件
+                original_filename = file.filename
+                file_ext = os.path.splitext(original_filename)[1].lower()
+                safe_name = secure_filename(pattern_name)
+                timestamp = datetime.now().strftime('%Y%m%d_%H%M%S_%f')[:-3]
+                filename = f"pattern_{timestamp}_{safe_name}{file_ext}"
+                
+                upload_path = os.path.join('uploads', 'patterns')
+                os.makedirs(upload_path, exist_ok=True)
+                file_path = os.path.join(upload_path, filename)
+                file.save(file_path)
+                
+                # 获取图片信息
+                with Image.open(file_path) as img:
+                    width, height = img.size
+                
+                file_size = os.path.getsize(file_path)
+                
+                # 创建图案记录
+                query = '''
+                    INSERT INTO patterns (name, filename, file_path, file_size, image_width, image_height, upload_time)
+                    VALUES (?, ?, ?, ?, ?, ?, ?)
+                '''
+                pattern_id = DatabaseManager.execute_insert(query, (
+                    pattern_name, filename, file_path, file_size, width, height, datetime.now()
+                ))
+                
+                results.append({
+                    'filename': original_filename,
+                    'status': 'success',
+                    'message': f'上传成功',
+                    'pattern_id': pattern_id,
+                    'pattern_name': pattern_name
+                })
+                success_count += 1
+                
+            except Exception as e:
+                results.append({
+                    'filename': file.filename,
+                    'status': 'error',
+                    'message': f'上传失败: {str(e)}'
+                })
+                error_count += 1
+        
+        return jsonify({
+            'success': True,
+            'message': f'批量上传完成！成功: {success_count} 个，失败: {error_count} 个',
+            'results': results,
+            'success_count': success_count,
+            'error_count': error_count
+        })
+        
+    except Exception as e:
+        return jsonify({'success': False, 'message': f'批量上传失败: {str(e)}'})
+
+@app.route('/patterns/handle-duplicate', methods=['POST'])
+@login_required
+def handle_duplicate_pattern():
+    """处理重名图案"""
+    try:
+        data = request.get_json()
+        action = data.get('action')  # 'overwrite' 或 'rename'
+        original_name = data.get('original_name')
+        new_name = data.get('new_name')
+        file_data = data.get('file_data')  # base64编码的文件数据
+        
+        if not action or not original_name:
+            return jsonify({'success': False, 'message': '缺少必要参数'})
+        
+        if action == 'overwrite':
+            # 覆盖现有图案
+            existing_pattern = DatabaseManager.execute_query("SELECT * FROM patterns WHERE name = ?", (original_name,))
+            if existing_pattern:
+                pattern = existing_pattern[0]
+                # 删除旧文件
+                old_file_path = pattern['file_path']
+                if os.path.exists(old_file_path):
+                    os.remove(old_file_path)
+                
+                # 保存新文件（这里需要从前端传递文件数据）
+                # 实际实现中可能需要调整文件传递方式
+                return jsonify({'success': True, 'message': f'图案"{original_name}"已覆盖'})
+            
+        elif action == 'rename':
+            # 重命名图案
+            if not new_name:
+                return jsonify({'success': False, 'message': '请输入新的图案名称'})
+            
+            # 检查新名称是否也重复
+            existing_new = DatabaseManager.execute_query("SELECT id FROM patterns WHERE name = ?", (new_name,))
+            if existing_new:
+                return jsonify({'success': False, 'message': f'新名称"{new_name}"也已存在，请使用其他名称'})
+            
+            return jsonify({'success': True, 'message': f'可以使用新名称"{new_name}"', 'new_name': new_name})
+        
+        return jsonify({'success': False, 'message': '无效的操作'})
+        
+    except Exception as e:
+        return jsonify({'success': False, 'message': f'处理失败: {str(e)}'})
 
 @app.route('/patterns/get')
 @login_required

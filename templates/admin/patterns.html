@@ -19,6 +19,9 @@
         <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addPatternModal">
             <i class="fas fa-plus me-2"></i>添加印花图案
         </button>
+        <button type="button" class="btn btn-success ms-2" data-bs-toggle="modal" data-bs-target="#batchUploadModal">
+            <i class="fas fa-upload me-2"></i>批量上传
+        </button>
         <button type="button" class="btn btn-danger ms-2" onclick="clearAllPatterns()">
             <i class="fas fa-trash me-2"></i>清空所有图案
         </button>
@@ -169,6 +172,54 @@
         </div>
     </div>
 </div>
+
+<!-- 批量上传模态框 -->
+<div class="modal fade" id="batchUploadModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title"><i class="fas fa-upload me-2"></i>批量上传印花图案</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="batchUploadForm" enctype="multipart/form-data">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="batchFiles" class="form-label">选择图片文件 <span class="text-danger">*</span></label>
+                        <input type="file" class="form-control" id="batchFiles" name="files" 
+                               accept="image/*" multiple required onchange="previewBatchImages(this)">
+                        <div class="form-text">
+                            支持 JPG、PNG、GIF 格式，可同时选择多个文件<br>
+                            文件名将作为图案名称（自动去掉扩展名），重名文件会自动提示处理方式
+                        </div>
+                    </div>
+                    <div class="mb-3" id="batchPreview" style="display: none;">
+                        <label class="form-label">文件预览和重名处理</label>
+                        <div id="batchPreviewContainer" class="row">
+                            <!-- 预览图片将在这里显示 -->
+                        </div>
+                    </div>
+                    <div class="mb-3" id="uploadProgress" style="display: none;">
+                        <label class="form-label">上传进度</label>
+                        <div class="progress">
+                            <div class="progress-bar" role="progressbar" style="width: 0%"></div>
+                        </div>
+                        <div id="progressText" class="mt-2 text-center"></div>
+                    </div>
+                    <div id="uploadResults" style="display: none;">
+                        <label class="form-label">上传结果</label>
+                        <div id="resultsContainer"></div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                    <button type="submit" class="btn btn-success" id="batchUploadBtn">
+                        <i class="fas fa-upload me-2"></i>开始上传
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
 {% endblock %}
 
 {% block extra_css %}
@@ -231,35 +282,59 @@
     border-bottom: 1px solid #eee;
 }
 
-.stats-card {
-    background: white;
-    border-radius: 15px;
-    padding: 20px;
+/* 批量上传相关样式 */
+.duplicate-warning {
+    border: 2px solid #ffc107 !important;
+    background-color: #fff3cd;
+}
+
+.duplicate-actions {
+    margin-top: 8px;
+    padding: 8px;
+    background-color: #f8f9fa;
+    border-radius: 4px;
+    border-left: 3px solid #ffc107;
+}
+
+.pattern-name-input {
+    font-size: 0.875rem;
+}
+
+.batch-file-item {
+    transition: all 0.3s ease;
+}
+
+.batch-file-item.has-duplicate {
+    transform: scale(0.98);
+}
+
+.duplicate-icon {
+    position: absolute;
+    top: 5px;
+    right: 5px;
+    background: #ffc107;
     color: white;
-    margin-bottom: 20px;
-    box-shadow: 0 5px 15px rgba(0,0,0,0.1);
-    transition: transform 0.3s ease;
+    border-radius: 50%;
+    width: 20px;
+    height: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 10px;
 }
 
-.stats-card:hover {
-    transform: translateY(-5px);
-}
-
-.stats-card h3 {
-    font-size: 2rem;
-    font-weight: bold;
-    margin: 0;
-}
-
-.stats-card p {
-    margin: 0;
-    opacity: 0.9;
+.pattern-name-input:disabled {
+    background-color: #e9ecef;
+    opacity: 0.7;
 }
 </style>
 {% endblock %}
 
 {% block extra_js %}
 <script>
+// 全局变量
+let existingPatternNames = [];
+
 // 图片预览
 function previewImage(input) {
     if (input.files && input.files[0]) {
@@ -283,6 +358,189 @@ function previewEditImage(input) {
         reader.readAsDataURL(input.files[0]);
     } else {
         document.getElementById('editImagePreview').style.display = 'none';
+    }
+}
+
+// 获取现有图案名称列表
+async function getExistingPatternNames() {
+    try {
+        const response = await fetch('{{ url_for("get_existing_pattern_names") }}');
+        const result = await response.json();
+        return result.success ? result.names : [];
+    } catch (error) {
+        console.error('获取现有图案名称失败:', error);
+        return [];
+    }
+}
+
+// 生成唯一名称
+function generateUniqueName(originalName, existingNames) {
+    let counter = 1;
+    let newName = `${originalName}_${counter}`;
+    
+    while (existingNames.includes(newName)) {
+        counter++;
+        newName = `${originalName}_${counter}`;
+    }
+    
+    return newName;
+}
+
+// 批量图片预览和重名检测
+async function previewBatchImages(input) {
+    const container = document.getElementById('batchPreviewContainer');
+    const preview = document.getElementById('batchPreview');
+    
+    container.innerHTML = '';
+    
+    if (input.files && input.files.length > 0) {
+        preview.style.display = 'block';
+        
+        // 获取现有图案名称列表
+        existingPatternNames = await getExistingPatternNames();
+        
+        Array.from(input.files).forEach((file, index) => {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const originalName = file.name.replace(/\.[^/.]+$/, ""); // 去掉扩展名
+                const isDuplicate = existingPatternNames.includes(originalName);
+                
+                const col = document.createElement('div');
+                col.className = 'col-md-4 col-sm-6 mb-3 batch-file-item';
+                col.setAttribute('data-file-index', index);
+                col.setAttribute('data-original-name', originalName);
+                
+                col.innerHTML = `
+                    <div class="card ${isDuplicate ? 'duplicate-warning' : ''}">
+                        <div class="position-relative">
+                            <img src="${e.target.result}" class="card-img-top" style="height: 120px; object-fit: cover;">
+                            ${isDuplicate ? '<div class="duplicate-icon"><i class="fas fa-exclamation-triangle"></i></div>' : ''}
+                        </div>
+                        <div class="card-body p-2">
+                            <div class="mb-2">
+                                <label class="form-label small mb-1">图案名称:</label>
+                                <input type="text" class="form-control form-control-sm pattern-name-input" 
+                                       value="${originalName}" data-original="${originalName}" data-index="${index}"
+                                       onchange="handleNameChange(${index}, this.value)">
+                            </div>
+                            ${isDuplicate ? `
+                                <div class="duplicate-actions">
+                                    <div class="small text-warning mb-2">
+                                        <i class="fas fa-exclamation-triangle me-1"></i>
+                                        检测到重名："${originalName}"
+                                    </div>
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="radio" name="action_${index}" 
+                                               id="overwrite_${index}" value="overwrite"
+                                               onchange="handleActionChange(${index}, 'overwrite')">
+                                        <label class="form-check-label small" for="overwrite_${index}">
+                                            <i class="fas fa-sync-alt me-1"></i>覆盖现有图案
+                                        </label>
+                                    </div>
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="radio" name="action_${index}" 
+                                               id="rename_${index}" value="rename" checked
+                                               onchange="handleActionChange(${index}, 'rename')">
+                                        <label class="form-check-label small" for="rename_${index}">
+                                            <i class="fas fa-edit me-1"></i>使用新名称
+                                        </label>
+                                    </div>
+                                </div>
+                            ` : ''}
+                        </div>
+                    </div>
+                `;
+                container.appendChild(col);
+                
+                // 如果是重名文件，默认选择重命名并生成新名称
+                if (isDuplicate) {
+                    const uniqueName = generateUniqueName(originalName, existingPatternNames);
+                    const nameInput = col.querySelector('.pattern-name-input');
+                    nameInput.value = uniqueName;
+                    // 更新现有名称列表，避免后续文件重复
+                    existingPatternNames.push(uniqueName);
+                    col.classList.add('has-duplicate');
+                }
+            };
+            reader.readAsDataURL(file);
+        });
+    } else {
+        preview.style.display = 'none';
+    }
+}
+
+// 处理名称变化
+async function handleNameChange(fileIndex, newName) {
+    const container = document.querySelector(`[data-file-index="${fileIndex}"]`);
+    const card = container.querySelector('.card');
+    const originalName = container.getAttribute('data-original-name');
+    
+    // 检查新名称是否重复
+    const currentExistingNames = await getExistingPatternNames();
+    const isDuplicate = currentExistingNames.includes(newName.trim());
+    
+    // 更新UI
+    let duplicateActions = container.querySelector('.duplicate-actions');
+    
+    if (isDuplicate && newName.trim() !== originalName) {
+        // 显示重名警告
+        card.classList.add('duplicate-warning');
+        container.classList.add('has-duplicate');
+        
+        // 添加重复图标
+        let duplicateIcon = container.querySelector('.duplicate-icon');
+        if (!duplicateIcon) {
+            const iconHtml = '<div class="duplicate-icon"><i class="fas fa-exclamation-triangle"></i></div>';
+            container.querySelector('.position-relative').insertAdjacentHTML('beforeend', iconHtml);
+        }
+        
+        // 添加处理选项
+        if (!duplicateActions) {
+            const actionsHtml = `
+                <div class="duplicate-actions">
+                    <div class="small text-warning mb-2">
+                        <i class="fas fa-exclamation-triangle me-1"></i>
+                        检测到重名："${newName.trim()}"
+                    </div>
+                    <div class="form-check">
+                        <input class="form-check-input" type="radio" name="action_${fileIndex}" 
+                               id="overwrite_${fileIndex}" value="overwrite">
+                        <label class="form-check-label small" for="overwrite_${fileIndex}">
+                            <i class="fas fa-sync-alt me-1"></i>覆盖现有图案
+                        </label>
+                    </div>
+                    <div class="form-check">
+                        <input class="form-check-input" type="radio" name="action_${fileIndex}" 
+                               id="rename_${fileIndex}" value="rename" checked>
+                        <label class="form-check-label small" for="rename_${fileIndex}">
+                            <i class="fas fa-edit me-1"></i>使用新名称
+                        </label>
+                    </div>
+                </div>
+            `;
+            container.querySelector('.card-body').insertAdjacentHTML('beforeend', actionsHtml);
+        } else {
+            // 更新重名提示文本
+            const warningText = duplicateActions.querySelector('.text-warning');
+            if (warningText) {
+                warningText.innerHTML = `<i class="fas fa-exclamation-triangle me-1"></i>检测到重名："${newName.trim()}"`;
+            }
+        }
+    } else {
+        // 移除重名警告
+        card.classList.remove('duplicate-warning');
+        container.classList.remove('has-duplicate');
+        
+        // 移除重复图标
+        const duplicateIcon = container.querySelector('.duplicate-icon');
+        if (duplicateIcon) {
+            duplicateIcon.remove();
+        }
+        
+        // 移除处理选项
+        if (duplicateActions) {
+            duplicateActions.remove();
+        }
     }
 }
 
@@ -325,6 +583,136 @@ document.getElementById('addPatternForm').addEventListener('submit', async funct
         showAlert('danger', '添加失败：' + error.message);
     }
 });
+
+// 批量上传处理
+document.getElementById('batchUploadForm').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    
+    const formData = new FormData();
+    const files = document.getElementById('batchFiles').files;
+    
+    if (!files || files.length === 0) {
+        showAlert('danger', '请选择要上传的文件');
+        return;
+    }
+    
+    // 检查是否有未处理的重名冲突
+    const duplicateItems = document.querySelectorAll('.duplicate-actions');
+    let hasUnresolvedConflicts = false;
+    
+    duplicateItems.forEach(item => {
+        const radios = item.querySelectorAll('input[type="radio"]');
+        const isChecked = Array.from(radios).some(radio => radio.checked);
+        if (!isChecked) {
+            hasUnresolvedConflicts = true;
+        }
+    });
+    
+    if (hasUnresolvedConflicts) {
+        showAlert('warning', '请处理所有重名冲突后再上传');
+        return;
+    }
+    
+    // 添加所有文件到FormData
+    for (let i = 0; i < files.length; i++) {
+        formData.append('files', files[i]);
+    }
+    
+    // 收集上传数据（自定义名称和处理方式）
+    const uploadData = {};
+    Array.from(files).forEach((file, index) => {
+        const fileContainer = document.querySelector(`[data-file-index="${index}"]`);
+        if (fileContainer) {
+            const nameInput = fileContainer.querySelector('.pattern-name-input');
+            const actionRadio = fileContainer.querySelector('input[type="radio"]:checked');
+            const originalName = fileContainer.getAttribute('data-original-name');
+            
+            let finalName;
+            const action = actionRadio ? actionRadio.value : 'rename';
+            
+            if (action === 'overwrite') {
+                // 覆盖时使用原始名称
+                finalName = originalName;
+            } else {
+                // 重命名时使用输入框中的名称
+                finalName = nameInput ? nameInput.value.trim() : originalName;
+            }
+            
+            uploadData[index] = {
+                newName: finalName,
+                action: action
+            };
+        }
+    });
+    
+    // 添加上传数据到FormData
+    formData.append('upload_data', JSON.stringify(uploadData));
+    
+    // 显示进度条
+    const progressDiv = document.getElementById('uploadProgress');
+    const progressBar = progressDiv.querySelector('.progress-bar');
+    const progressText = document.getElementById('progressText');
+    const uploadBtn = document.getElementById('batchUploadBtn');
+    
+    progressDiv.style.display = 'block';
+    uploadBtn.disabled = true;
+    uploadBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>上传中...';
+    
+    try {
+        const response = await fetch('{{ url_for("batch_upload_patterns_with_names") }}', {
+            method: 'POST',
+            body: formData
+        });
+        
+        const result = await response.json();
+        
+        // 更新进度条
+        progressBar.style.width = '100%';
+        progressText.textContent = '上传完成';
+        
+        // 显示结果
+        displayUploadResults(result);
+        
+        if (result.success) {
+            showAlert('success', result.message);
+            setTimeout(() => location.reload(), 3000);
+        } else {
+            showAlert('danger', result.message);
+        }
+        
+    } catch (error) {
+        showAlert('danger', '批量上传失败：' + error.message);
+    } finally {
+        uploadBtn.disabled = false;
+        uploadBtn.innerHTML = '<i class="fas fa-upload me-2"></i>开始上传';
+    }
+});
+
+// 显示上传结果
+function displayUploadResults(result) {
+    const resultsDiv = document.getElementById('uploadResults');
+    const container = document.getElementById('resultsContainer');
+    
+    container.innerHTML = '';
+    
+    if (result.results && result.results.length > 0) {
+        result.results.forEach(item => {
+            const statusClass = item.status === 'success' ? 'success' : 'danger';
+            const statusIcon = item.status === 'success' ? 'check-circle' : 'times-circle';
+            
+            const resultItem = document.createElement('div');
+            resultItem.className = `alert alert-${statusClass} py-2 mb-2`;
+            resultItem.innerHTML = `
+                <i class="fas fa-${statusIcon} me-2"></i>
+                <strong>${item.filename}</strong>
+                ${item.pattern_name ? `→ ${item.pattern_name}` : ''}: ${item.message}
+            `;
+            container.appendChild(resultItem);
+        });
+        
+        resultsDiv.style.display = 'block';
+    }
+}
 
 // 编辑图案
 function editPattern(id) {
