@@ -230,3 +230,48 @@ label, .text-gray-300, .text-gray-400 { color: var(--text-secondary) !important;
 @keyframes spin { to{ transform: rotate(360deg);} }
 .toast { position:fixed; top:20px; right:20px; background: var(--primary-color); color:#fff; padding:1rem 1.5rem; border-radius:6px; box-shadow: var(--shadow-hover); z-index:1000; animation: slideIn .3s ease; }
 @keyframes slideIn { from{ transform: translateX(100%); opacity:0;} to{ transform: translateX(0); opacity:1;} }
+
+/* 列表发光迁移到包裹层：.pattern-list-wrap/.product-list-wrap */
+.pattern-list::before, .product-list::before { content: none !important; }
+
+.pattern-list, .product-list {
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  animation: none !important;
+  overflow-y: auto !important;  /* 保持内部滚动（max-height 由模板控制） */
+  overflow-x: hidden;
+}
+
+/* 包裹层：仅围住列表区域的浮雕与发光边缘 */
+.pattern-list-wrap, .product-list-wrap {
+  position: relative;
+  background: var(--holiday-surface) !important;
+  border-radius: 14px !important;
+  border: 1px solid var(--border-color) !important;
+  box-shadow:
+    12px 12px 24px var(--holiday-shadow),
+    -10px -10px 20px var(--holiday-highlight);
+  overflow: visible;
+  margin-top: 0.5rem;
+}
+.pattern-list-wrap::before, .product-list-wrap::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: 1.2px;
+  background: linear-gradient(120deg,
+    rgba(255,255,255,0.98),
+    var(--accent-red-strong),
+    rgba(245,158,11,0.55),
+    rgba(255,255,255,0.98),
+    var(--accent-red-strong)
+  );
+  background-size: 330% 330%;
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+          mask-composite: exclude;
+  pointer-events: none;
+  animation: edgeShimmer 3.6s ease-in-out infinite;
+}

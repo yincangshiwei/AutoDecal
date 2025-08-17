@@ -440,3 +440,122 @@ label,
   from { transform: translateX(100%); opacity: 0; }
   to   { transform: translateX(0);     opacity: 1; }
 }
+
+/* 保持 400px 限制并启用垂直滚动，确保边缘闪烁随容器高度变化 */
+.pattern-list,
+.product-list {
+  /* 不改 max-height: 400px（模板内联定义） */
+  overflow-y: auto !important;   /* 恢复垂直滚动 */
+  overflow-x: hidden;            /* 避免横向滚动条 */
+}
+
+/* 将闪烁边缘移动到外层包裹元素（panel），避免随内部滚动抖动 */
+.pattern-list::before,
+.product-list::before {
+  content: none !important;
+}
+
+/* 列表自身不再承担外框与发光，避免双层边框冲突 */
+.pattern-list,
+.product-list {
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  animation: none !important;
+}
+
+/* 外层面板启用浮雕和边缘闪烁 */
+.pattern-panel,
+.product-panel {
+  position: relative;
+  background: var(--holiday-surface) !important;
+  border-radius: 14px !important;
+  border: 1px solid var(--border-color) !important;
+  box-shadow:
+    12px 12px 24px var(--holiday-shadow),
+    -10px -10px 20px var(--holiday-highlight);
+  overflow: visible; /* 让伪元素不被裁剪 */
+}
+
+/* 面板边缘闪烁 */
+.pattern-panel::before,
+.product-panel::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: 1px;
+  background: linear-gradient(
+    120deg,
+    rgba(255,255,255,0.95),
+    var(--accent-red-strong),
+    rgba(255,255,255,0.95),
+    var(--accent-red-strong)
+  );
+  background-size: 300% 300%;
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+          mask-composite: exclude;
+  pointer-events: none;
+  animation: edgeShimmer 4s ease-in-out infinite;
+}
+
+/* 禁用 panel 发光与外观，避免包住 h2/select */
+.pattern-panel::before,
+.product-panel::before {
+  content: none !important;
+  animation: none !important;
+  background: none !important;
+}
+.pattern-panel,
+.product-panel {
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+
+/* 列表包裹层：仅围住列表区域的浮雕卡片与发光边缘 */
+.pattern-list-wrap,
+.product-list-wrap {
+  position: relative;
+  background: var(--holiday-surface) !important;
+  border-radius: 14px !important;
+  border: 1px solid var(--border-color) !important;
+  box-shadow:
+    12px 12px 24px var(--holiday-shadow),
+    -10px -10px 20px var(--holiday-highlight);
+  overflow: visible; /* 让伪元素不被裁剪 */
+  margin-top: 0.5rem; /* 与标题/选择器间距 */
+}
+.pattern-list-wrap::before,
+.product-list-wrap::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: 1px;
+  background: linear-gradient(
+    120deg,
+    rgba(255,255,255,0.95),
+    var(--accent-red-strong),
+    rgba(255,255,255,0.95),
+    var(--accent-red-strong)
+  );
+  background-size: 300% 300%;
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+          mask-composite: exclude;
+  pointer-events: none;
+  animation: edgeShimmer 4s ease-in-out infinite;
+}
+
+/* 列表本体：保持滚动窗口（max-height 由模板控制），不做发光 */
+.pattern-list,
+.product-list {
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  animation: none !important;
+  overflow-y: auto !important;
+  overflow-x: hidden;
+}
