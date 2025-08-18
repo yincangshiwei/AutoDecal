@@ -92,8 +92,8 @@ class ProductArchive:
     original_depth_image: str = ""
     effect_image: str = ""
     effect_category: str = ""  # 基础效果、AI效果
-    registration_time: Optional[datetime] = None
-    registration_info: str = ""
+    register_time: Optional[datetime] = None
+    register_info: str = ""
     follow_up_person: str = ""
     original_product_path: str = ""
     original_depth_path: str = ""

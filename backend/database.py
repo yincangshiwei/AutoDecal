@@ -135,8 +135,8 @@ def init_database():
             original_depth_image TEXT NOT NULL,
             effect_image TEXT NOT NULL,
             effect_category TEXT NOT NULL,
-            registration_time DATETIME DEFAULT CURRENT_TIMESTAMP,
-            registration_info TEXT DEFAULT '',
+            register_time DATETIME DEFAULT CURRENT_TIMESTAMP,
+            register_info TEXT DEFAULT '',
             follow_up_person TEXT DEFAULT '',
             original_product_path TEXT NOT NULL,
             original_depth_path TEXT NOT NULL,
@@ -572,7 +572,7 @@ class DatabaseManager:
         query = "SELECT * FROM product_archives"
         if active_only:
             query += " WHERE is_active = 1"
-        query += " ORDER BY registration_time DESC"
+        query += " ORDER BY register_time DESC"
         return DatabaseManager.execute_query(query)
     
     @staticmethod
