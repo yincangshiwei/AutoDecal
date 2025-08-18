@@ -346,6 +346,7 @@ window.addEventListener('load', () => {
         scene.add(plane);
 
         setupUIListeners();
+        setupAutoplayControls();
         setupCanvasInteraction();
         setupActions();
         
@@ -623,6 +624,219 @@ window.addEventListener('load', () => {
             }
         }
     }
+    // --- 自动播放控制 ---
+    let autoplayState = {
+        themeEnabled: false,
+        themeIntervalSec: 5,
+        bgEnabled: false,
+        bgIntervalSec: 3,
+        themeTimer: null,
+        bgTimer: null,
+        emptyBgTicks: 0
+    };
+
+    function getThemeValues() {
+        const sel = document.getElementById('themeSelect');
+        if (!sel) return [];
+        return Array.from(sel.options).map(o => o.value);
+    }
+
+    function getCurrentThemeIndex() {
+        const sel = document.getElementById('themeSelect');
+        const themes = getThemeValues();
+        if (!sel || themes.length === 0) return 0;
+        const cur = sel.value;
+        const idx = themes.indexOf(cur);
+        return idx >= 0 ? idx : 0;
+    }
+
+    function setThemeByIndex(idx) {
+        const sel = document.getElementById('themeSelect');
+        const themes = getThemeValues();
+        if (!sel || themes.length === 0) return;
+        const nextIdx = ((idx % themes.length) + themes.length) % themes.length;
+        sel.value = themes[nextIdx];
+        // 触发变更以加载主题和背景
+        sel.dispatchEvent(new Event('change'));
+    }
+
+    function advanceTheme() {
+        const idx = getCurrentThemeIndex();
+        setThemeByIndex(idx + 1);
+    }
+
+    function getBgValuesFiltered() {
+        const sel = document.getElementById('bgSelect');
+        if (!sel) return [];
+        const vals = Array.from(sel.options).map(o => o.value).filter(v => v);
+        return vals;
+    }
+
+    function getBgSelectedIndex() {
+        const sel = document.getElementById('bgSelect');
+        if (!sel) return -1;
+        const vals = getBgValuesFiltered();
+        const cur = sel.value;
+        return vals.indexOf(cur);
+    }
+
+    function setBgByIndex(i) {
+        const sel = document.getElementById('bgSelect');
+        const vals = getBgValuesFiltered();
+        if (!sel || vals.length === 0) return;
+        const idx = ((i % vals.length) + vals.length) % vals.length;
+        sel.value = vals[idx];
+        sel.dispatchEvent(new Event('change'));
+    }
+
+    function clearAutoplayTimers() {
+        if (autoplayState.themeTimer) {
+            clearInterval(autoplayState.themeTimer);
+            autoplayState.themeTimer = null;
+        }
+        if (autoplayState.bgTimer) {
+            clearInterval(autoplayState.bgTimer);
+            autoplayState.bgTimer = null;
+        }
+        autoplayState.emptyBgTicks = 0;
+    }
+
+    function startThemeAutoplay() {
+        if (!autoplayState.themeEnabled) return;
+        const ms = Math.max(1, parseInt(autoplayState.themeIntervalSec || 5, 10)) * 1000;
+        autoplayState.themeTimer = setInterval(() => {
+            advanceTheme();
+        }, ms);
+    }
+
+    function bgTickOnly() {
+        const len = getBgValuesFiltered().length;
+        if (len === 0) return;
+        const idx = getBgSelectedIndex();
+        const next = ((idx >= 0 ? idx : -1) + 1) % len;
+        setBgByIndex(next);
+    }
+
+    function bgTickCombined() {
+        const len = getBgValuesFiltered().length;
+        if (len === 0) {
+            // 背景为空，等待1个周期；连续两次为空则跳过到下个主题
+            autoplayState.emptyBgTicks += 1;
+            if (autoplayState.emptyBgTicks >= 2) {
+                autoplayState.emptyBgTicks = 0;
+                advanceTheme();
+            }
+            return;
+        }
+        autoplayState.emptyBgTicks = 0;
+        const idx = getBgSelectedIndex();
+        if (idx < 0) {
+            // 未选择任何背景，先选第一张
+            setBgByIndex(0);
+            return;
+        }
+        if (idx < len - 1) {
+            setBgByIndex(idx + 1);
+        } else {
+            // 已播放到最后一张 → 轮播完成，切换下一个主题
+            advanceTheme();
+            // 新主题背景将通过主题切换后自动加载；下一tick继续
+        }
+    }
+
+    function startBgAutoplayOnly() {
+        if (!autoplayState.bgEnabled) return;
+        const ms = Math.max(1, parseInt(autoplayState.bgIntervalSec || 3, 10)) * 1000;
+        autoplayState.bgTimer = setInterval(() => {
+            bgTickOnly();
+        }, ms);
+    }
+
+    function startCombinedAutoplay() {
+        if (!autoplayState.bgEnabled || !autoplayState.themeEnabled) return;
+        const ms = Math.max(1, parseInt(autoplayState.bgIntervalSec || 3, 10)) * 1000;
+        autoplayState.bgTimer = setInterval(() => {
+            bgTickCombined();
+        }, ms);
+    }
+
+    function saveAutoplaySettings() {
+        try {
+            localStorage.setItem('autoplayThemeEnabled', autoplayState.themeEnabled ? '1' : '0');
+            localStorage.setItem('autoplayThemeIntervalSec', String(autoplayState.themeIntervalSec));
+            localStorage.setItem('autoplayBgEnabled', autoplayState.bgEnabled ? '1' : '0');
+            localStorage.setItem('autoplayBgIntervalSec', String(autoplayState.bgIntervalSec));
+        } catch (_) {}
+    }
+
+    function loadAutoplaySettings() {
+        try {
+            autoplayState.themeEnabled = (localStorage.getItem('autoplayThemeEnabled') === '1');
+            autoplayState.themeIntervalSec = parseInt(localStorage.getItem('autoplayThemeIntervalSec') || '5', 10);
+            autoplayState.bgEnabled = (localStorage.getItem('autoplayBgEnabled') === '1');
+            autoplayState.bgIntervalSec = parseInt(localStorage.getItem('autoplayBgIntervalSec') || '3', 10);
+            if (!Number.isFinite(autoplayState.themeIntervalSec) || autoplayState.themeIntervalSec < 1) autoplayState.themeIntervalSec = 5;
+            if (!Number.isFinite(autoplayState.bgIntervalSec) || autoplayState.bgIntervalSec < 1) autoplayState.bgIntervalSec = 3;
+        } catch (_) {}
+    }
+
+    function restartAutoplay() {
+        clearAutoplayTimers();
+        if (autoplayState.themeEnabled && autoplayState.bgEnabled) {
+            startCombinedAutoplay();
+        } else if (autoplayState.themeEnabled) {
+            startThemeAutoplay();
+        } else if (autoplayState.bgEnabled) {
+            startBgAutoplayOnly();
+        }
+    }
+
+    function setupAutoplayControls() {
+        const elTheme = document.getElementById('autoPlayTheme');
+        const elThemeInt = document.getElementById('autoPlayThemeInterval');
+        const elBg = document.getElementById('autoPlayBg');
+        const elBgInt = document.getElementById('autoPlayBgInterval');
+
+        if (!elTheme || !elThemeInt || !elBg || !elBgInt) return;
+
+        loadAutoplaySettings();
+
+        // 初始化UI
+        elTheme.checked = !!autoplayState.themeEnabled;
+        elThemeInt.value = String(autoplayState.themeIntervalSec);
+        elBg.checked = !!autoplayState.bgEnabled;
+        elBgInt.value = String(autoplayState.bgIntervalSec);
+
+        // 事件绑定
+        elTheme.addEventListener('change', () => {
+            autoplayState.themeEnabled = elTheme.checked;
+            saveAutoplaySettings();
+            restartAutoplay();
+        });
+        elThemeInt.addEventListener('input', () => {
+            const v = Math.max(1, parseInt(elThemeInt.value || '5', 10));
+            autoplayState.themeIntervalSec = v;
+            elThemeInt.value = String(v);
+            saveAutoplaySettings();
+            restartAutoplay();
+        });
+        elBg.addEventListener('change', () => {
+            autoplayState.bgEnabled = elBg.checked;
+            saveAutoplaySettings();
+            restartAutoplay();
+        });
+        elBgInt.addEventListener('input', () => {
+            const v = Math.max(1, parseInt(elBgInt.value || '3', 10));
+            autoplayState.bgIntervalSec = v;
+            elBgInt.value = String(v);
+            saveAutoplaySettings();
+            restartAutoplay();
+        });
+
+        // 启动
+        restartAutoplay();
+    }
+
     function setupUIListeners() {
         const controls = {
             'distortion': 'uDistortion',

@@ -336,6 +336,29 @@
             <option value="" data-i18n="default">默认</option>
           </select>
         </div>
+        <!-- 自动播放设置 -->
+        <div class="space-y-3">
+          <div class="flex items-center justify-between">
+            <label class="text-sm font-medium" for="autoPlayTheme" data-i18n="auto-play-theme">自动播放主题</label>
+            <div class="flex items-center gap-2">
+              <input id="autoPlayTheme" type="checkbox" class="h-4 w-4">
+              <div class="flex items-center gap-1">
+                <label for="autoPlayThemeInterval" class="text-sm text-gray-500" data-i18n="duration-seconds">时长(秒)</label>
+                <input id="autoPlayThemeInterval" type="number" min="1" step="1" value="5" class="w-20 px-2 py-1 rounded bg-gray-100 border border-gray-300 text-gray-800">
+              </div>
+            </div>
+          </div>
+          <div class="flex items-center justify-between">
+            <label class="text-sm font-medium" for="autoPlayBg" data-i18n="auto-play-bg">自动播放背景图</label>
+            <div class="flex items-center gap-2">
+              <input id="autoPlayBg" type="checkbox" class="h-4 w-4">
+              <div class="flex items-center gap-1">
+                <label for="autoPlayBgInterval" class="text-sm text-gray-500" data-i18n="duration-seconds">时长(秒)</label>
+                <input id="autoPlayBgInterval" type="number" min="1" step="1" value="3" class="w-20 px-2 py-1 rounded bg-gray-100 border border-gray-300 text-gray-800">
+              </div>
+            </div>
+          </div>
+        </div>
         <!-- 上层透明度控件 -->
         <div class="space-y-2">
           <label id="bgOpacityTopLabel" class="text-sm font-medium" data-i18n="upper-opacity">上层透明度 (0.30)</label>
@@ -387,7 +410,10 @@
         'theme-settings': '主题设置',
         'theme-settings-title': '主题设置',
         'upper-opacity': '上层透明度',
-        'lower-opacity': '下层透明度'
+        'lower-opacity': '下层透明度',
+        'auto-play-theme': '自动播放主题',
+        'auto-play-bg': '自动播放背景图',
+        'duration-seconds': '时长(秒)'
       },
       'en': {
         'page-title': '3D Wrap Texture Editor',
@@ -418,7 +444,10 @@
         'theme-settings': 'Theme Settings',
         'theme-settings-title': 'Theme Settings',
         'upper-opacity': 'Upper Opacity',
-        'lower-opacity': 'Lower Opacity'
+        'lower-opacity': 'Lower Opacity',
+        'auto-play-theme': 'Auto-play Theme',
+        'auto-play-bg': 'Auto-play Backgrounds',
+        'duration-seconds': 'Duration(s)'
       }
     };
 
