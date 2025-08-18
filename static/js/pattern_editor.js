@@ -513,74 +513,41 @@ window.addEventListener('load', () => {
         }
     }
 
-    // 动态创建并绑定“背景透明度（上下端）”控件（不改模板结构，仅并排插入）
+    // 更新透明度标签的全局函数
+    window.updateBgOpacityLabels = function() {
+        const topLabel = document.getElementById('bgOpacityTopLabel');
+        const bottomLabel = document.getElementById('bgOpacityBottomLabel');
+        
+        if (!topLabel || !bottomLabel) return;
+        
+        const currentLang = localStorage.getItem('language') || 'zh-CN';
+        const upperText = window.translations && window.translations[currentLang] && window.translations[currentLang]['upper-opacity'] 
+            ? window.translations[currentLang]['upper-opacity'] 
+            : 'Upper Opacity';
+        const lowerText = window.translations && window.translations[currentLang] && window.translations[currentLang]['lower-opacity'] 
+            ? window.translations[currentLang]['lower-opacity'] 
+            : 'Lower Opacity';
+        
+        topLabel.textContent = `${upperText} (${bgOverlayOpacityTop.toFixed(2)})`;
+        bottomLabel.textContent = `${lowerText} (${bgOverlayOpacityBottom.toFixed(2)})`;
+    };
+
+    // 设置背景透明度控件事件监听
     function setupBgOpacityControls() {
         const bgSelect = document.getElementById('bgSelect');
-        if (!bgSelect) return;
+        const topSlider = document.getElementById('bgOpacityTop');
+        const bottomSlider = document.getElementById('bgOpacityBottom');
+        const topLabel = document.getElementById('bgOpacityTopLabel');
+        const bottomLabel = document.getElementById('bgOpacityBottomLabel');
 
-        // 重复调用时复用已存在的控件
-        let topSlider = document.getElementById('bgOpacityTop');
-        let bottomSlider = document.getElementById('bgOpacityBottom');
-        let topLabel = document.getElementById('bgOpacityTopLabel');
-        let bottomLabel = document.getElementById('bgOpacityBottomLabel');
+        if (!bgSelect || !topSlider || !bottomSlider || !topLabel || !bottomLabel) return;
 
-        if (!topSlider || !bottomSlider) {
-            const wrap = document.createElement('div');
-            wrap.className = 'flex flex-col gap-3 w-full';
+        // 初始化滑块值
+        topSlider.value = String(Number.isFinite(bgOverlayOpacityTop) ? bgOverlayOpacityTop : 0.3);
+        bottomSlider.value = String(Number.isFinite(bgOverlayOpacityBottom) ? bgOverlayOpacityBottom : 0.3);
 
-            // 上端
-            const g1 = document.createElement('div');
-            g1.className = 'flex flex-col items-start gap-2 w-full';
-            topLabel = document.createElement('label');
-            topLabel.id = 'bgOpacityTopLabel';
-            topLabel.className = 'text-sm font-medium text-gray-300';
-            topLabel.textContent = `上层透明度 (${(Number.isFinite(bgOverlayOpacityTop) ? bgOverlayOpacityTop : 0.3).toFixed(2)})`;
-            topSlider = document.createElement('input');
-            topSlider.type = 'range';
-            topSlider.id = 'bgOpacityTop';
-            topSlider.min = '0';
-            topSlider.max = '1';
-            topSlider.step = '0.01';
-            topSlider.value = String(Number.isFinite(bgOverlayOpacityTop) ? bgOverlayOpacityTop : 0.3);
-            topSlider.className = 'w-full slider-thumb modal-slider';
-
-            // 下端
-            const g2 = document.createElement('div');
-            g2.className = 'flex flex-col items-start gap-2 w-full';
-            bottomLabel = document.createElement('label');
-            bottomLabel.id = 'bgOpacityBottomLabel';
-            bottomLabel.className = 'text-sm font-medium text-gray-300';
-            bottomLabel.textContent = `下层透明度 (${(Number.isFinite(bgOverlayOpacityBottom) ? bgOverlayOpacityBottom : 0.3).toFixed(2)})`;
-            bottomSlider = document.createElement('input');
-            bottomSlider.type = 'range';
-            bottomSlider.id = 'bgOpacityBottom';
-            bottomSlider.min = '0';
-            bottomSlider.max = '1';
-            bottomSlider.step = '0.01';
-            bottomSlider.value = String(Number.isFinite(bgOverlayOpacityBottom) ? bgOverlayOpacityBottom : 0.3);
-            bottomSlider.className = 'w-full slider-thumb modal-slider';
-
-            g1.appendChild(topLabel);
-            g1.appendChild(topSlider);
-            g2.appendChild(bottomLabel);
-            g2.appendChild(bottomSlider);
-            wrap.appendChild(g1);
-            wrap.appendChild(g2);
-
-            // 插入在背景选择控件后
-            if (bgSelect.parentElement) {
-                bgSelect.parentElement.appendChild(wrap);
-            }
-        } else {
-            // 同步显示值
-            topSlider.value = String(Number.isFinite(bgOverlayOpacityTop) ? bgOverlayOpacityTop : 0.3);
-            bottomSlider.value = String(Number.isFinite(bgOverlayOpacityBottom) ? bgOverlayOpacityBottom : 0.3);
-            // 复用时也保证纵向与全宽
-            topSlider.className = 'w-full slider-thumb modal-slider';
-            bottomSlider.className = 'w-full slider-thumb modal-slider';
-            if (topLabel) topLabel.textContent = `上层透明度 (${(Number.isFinite(bgOverlayOpacityTop) ? bgOverlayOpacityTop : 0.3).toFixed(2)})`;
-            if (bottomLabel) bottomLabel.textContent = `下层透明度 (${(Number.isFinite(bgOverlayOpacityBottom) ? bgOverlayOpacityBottom : 0.3).toFixed(2)})`;
-        }
+        // 初始化标签显示
+        window.updateBgOpacityLabels();
 
         const updateDisabled = () => {
             const disabled = !bgSelect.value;
@@ -592,7 +559,7 @@ window.addEventListener('load', () => {
         topSlider.addEventListener('input', () => {
             bgOverlayOpacityTop = parseFloat(topSlider.value) || 0;
             try { localStorage.setItem('bgOpacityTop', String(bgOverlayOpacityTop)); } catch (_) {}
-            if (topLabel) topLabel.textContent = `上层透明度 (${bgOverlayOpacityTop.toFixed(2)})`;
+            window.updateBgOpacityLabels();
             if (bgSelect.value) {
                 const themeKey = (document.getElementById('themeSelect') && document.getElementById('themeSelect').value) || 'default';
                 applyBackground(bgSelect.value, themeKey);
@@ -602,7 +569,7 @@ window.addEventListener('load', () => {
         bottomSlider.addEventListener('input', () => {
             bgOverlayOpacityBottom = parseFloat(bottomSlider.value) || 0;
             try { localStorage.setItem('bgOpacityBottom', String(bgOverlayOpacityBottom)); } catch (_) {}
-            if (bottomLabel) bottomLabel.textContent = `下层透明度 (${bgOverlayOpacityBottom.toFixed(2)})`;
+            window.updateBgOpacityLabels();
             if (bgSelect.value) {
                 const themeKey = (document.getElementById('themeSelect') && document.getElementById('themeSelect').value) || 'default';
                 applyBackground(bgSelect.value, themeKey);
@@ -825,7 +792,7 @@ window.addEventListener('load', () => {
                 }
                 
                 localStorage.setItem('selectedTheme', selectedTheme);
-                // 切换主题后只尝试加载该主题前缀背景；若没有则回退“默认”（不加载）
+                // 切换主题后只尝试加载该主题前缀背景；若没有则回退"默认"（不加载）
                 await loadBackgroundsForTheme(selectedTheme, true);
             });
 
