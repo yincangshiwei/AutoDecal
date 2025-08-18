@@ -1,0 +1,452 @@
+{% extends "admin/base.html" %}
+
+{% block title %}产品效果归档管理{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1><i class="fas fa-archive me-3"></i>产品效果归档管理</h1>
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{{ url_for('index') }}">仪表盘</a></li>
+            <li class="breadcrumb-item active">产品效果归档</li>
+        </ol>
+    </nav>
+</div>
+
+<!-- 操作按钮 -->
+<div class="row mb-4">
+    <div class="col-md-6">
+        <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addArchiveModal">
+            <i class="fas fa-plus me-2"></i>添加归档
+        </button>
+    </div>
+    <div class="col-md-6">
+        <div class="input-group">
+            <select class="form-select" id="categoryFilter">
+                <option value="">所有类别</option>
+                <option value="基础效果">基础效果</option>
+                <option value="AI效果">AI效果</option>
+            </select>
+            <input type="text" class="form-control" id="searchInput" placeholder="搜索授权码或跟进人...">
+            <button class="btn btn-outline-secondary" type="button">
+                <i class="fas fa-search"></i>
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- 归档列表 -->
+<div class="card">
+    <div class="card-header">
+        <h5><i class="fas fa-list me-2"></i>归档列表 ({{ archives|length }} 个)</h5>
+    </div>
+    <div class="card-body">
+        {% if archives %}
+        <div class="table-responsive">
+            <table class="table table-hover">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>授权码</th>
+                        <th>原产品图</th>
+                        <th>原深度图</th>
+                        <th>产品效果图</th>
+                        <th>效果类别</th>
+                        <th>登记时间</th>
+                        <th>跟进人</th>
+                        <th>操作</th>
+                    </tr>
+                </thead>
+                <tbody id="archivesTable">
+                    {% for archive in archives %}
+                    <tr class="archive-item" data-access-code="{{ archive.access_code|lower }}" data-category="{{ archive.effect_category }}" data-person="{{ archive.follow_up_person|lower }}">
+                        <td>{{ archive.id }}</td>
+                        <td>
+                            <span class="badge bg-info">{{ archive.access_code }}</span>
+                        </td>
+                        <td>
+                            <div class="image-preview">
+                                <img src="{{ url_for('uploaded_file', filename=archive.original_product_path) }}" 
+                                     alt="原产品图" class="img-thumbnail" style="width: 60px; height: 60px; object-fit: cover;">
+                            </div>
+                        </td>
+                        <td>
+                            <div class="image-preview">
+                                <img src="{{ url_for('uploaded_file', filename=archive.original_depth_path) }}" 
+                                     alt="原深度图" class="img-thumbnail" style="width: 60px; height: 60px; object-fit: cover;">
+                            </div>
+                        </td>
+                        <td>
+                            <div class="image-preview">
+                                <img src="{{ url_for('uploaded_file', filename=archive.effect_image_path) }}" 
+                                     alt="产品效果图" class="img-thumbnail" style="width: 60px; height: 60px; object-fit: cover;">
+                            </div>
+                        </td>
+                        <td>
+                            {% if archive.effect_category == 'AI效果' %}
+                                <span class="badge bg-success">{{ archive.effect_category }}</span>
+                            {% else %}
+                                <span class="badge bg-primary">{{ archive.effect_category }}</span>
+                            {% endif %}
+                        </td>
+                        <td>{{ archive.registration_time[:16] if archive.registration_time else '未知' }}</td>
+                        <td>{{ archive.follow_up_person or '未指定' }}</td>
+                        <td>
+                            <button class="btn btn-sm btn-outline-info" onclick="viewArchiveDetail({{ archive.id }})">
+                                <i class="fas fa-eye"></i>
+                            </button>
+                            <button class="btn btn-sm btn-outline-danger ms-1" onclick="deleteArchive({{ archive.id }})">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="text-center py-5">
+            <i class="fas fa-archive fa-3x text-muted mb-3"></i>
+            <h5 class="text-muted">暂无归档记录</h5>
+            <p class="text-muted">点击上方"添加归档"按钮开始创建归档记录</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- 添加归档模态框 -->
+<div class="modal fade" id="addArchiveModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title"><i class="fas fa-plus me-2"></i>添加产品效果归档</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="addArchiveForm">
+                <div class="modal-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="accessCode" class="form-label">授权码 <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control" id="accessCode" name="access_code" required>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="effectCategory" class="form-label">产品效果类别 <span class="text-danger">*</span></label>
+                                <select class="form-select" id="effectCategory" name="effect_category" required>
+                                    <option value="">请选择类别</option>
+                                    <option value="基础效果">基础效果</option>
+                                    <option value="AI效果">AI效果</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                <label for="originalProductImage" class="form-label">原产品图 <span class="text-danger">*</span></label>
+                                <input type="file" class="form-control" id="originalProductImage" name="original_product_image" accept="image/*" required>
+                                <div class="form-text">支持 PNG、JPG、JPEG 格式</div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                <label for="originalDepthImage" class="form-label">原产品深度图 <span class="text-danger">*</span></label>
+                                <input type="file" class="form-control" id="originalDepthImage" name="original_depth_image" accept="image/*" required>
+                                <div class="form-text">支持 PNG、JPG、JPEG 格式</div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                <label for="effectImage" class="form-label">产品效果图 <span class="text-danger">*</span></label>
+                                <input type="file" class="form-control" id="effectImage" name="effect_image" accept="image/*" required>
+                                <div class="form-text">支持 PNG、JPG、JPEG 格式</div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="followUpPerson" class="form-label">跟进人</label>
+                                <input type="text" class="form-control" id="followUpPerson" name="follow_up_person" placeholder="输入跟进人姓名">
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="registrationInfo" class="form-label">登记信息</label>
+                                <textarea class="form-control" id="registrationInfo" name="registration_info" rows="3" placeholder="输入相关登记信息..."></textarea>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-save me-2"></i>保存归档
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- 查看详情模态框 -->
+<div class="modal fade" id="viewArchiveModal" tabindex="-1">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title"><i class="fas fa-eye me-2"></i>归档详情</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="archiveDetailContent">
+                <!-- 详情内容将通过JavaScript动态加载 -->
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">关闭</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+.page-header {
+    margin-bottom: 2rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid #eee;
+}
+
+.table th {
+    background-color: #f8f9fa;
+    border-top: none;
+    font-weight: 600;
+}
+
+.table-hover tbody tr:hover {
+    background-color: rgba(0,123,255,0.05);
+}
+
+.archive-item {
+    transition: all 0.2s ease;
+}
+
+.badge {
+    font-size: 0.75rem;
+}
+
+.image-preview img {
+    cursor: pointer;
+    transition: transform 0.2s ease;
+}
+
+.image-preview img:hover {
+    transform: scale(1.1);
+}
+
+.modal-xl {
+    max-width: 90%;
+}
+
+.detail-image {
+    max-width: 100%;
+    height: auto;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// 搜索和筛选功能
+document.getElementById('searchInput').addEventListener('input', filterArchives);
+document.getElementById('categoryFilter').addEventListener('change', filterArchives);
+
+function filterArchives() {
+    const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+    const categoryFilter = document.getElementById('categoryFilter').value;
+    const archiveItems = document.querySelectorAll('.archive-item');
+    
+    archiveItems.forEach(item => {
+        const accessCode = item.getAttribute('data-access-code');
+        const category = item.getAttribute('data-category');
+        const person = item.getAttribute('data-person');
+        
+        const matchesSearch = accessCode.includes(searchTerm) || person.includes(searchTerm);
+        const matchesCategory = !categoryFilter || category === categoryFilter;
+        
+        if (matchesSearch && matchesCategory) {
+            item.style.display = 'table-row';
+        } else {
+            item.style.display = 'none';
+        }
+    });
+}
+
+// 添加归档
+document.getElementById('addArchiveForm').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    
+    const formData = new FormData(this);
+    const data = Object.fromEntries(formData);
+    
+    // 这里需要处理文件上传，暂时使用文件名
+    data.original_product_image = document.getElementById('originalProductImage').files[0]?.name || '';
+    data.original_depth_image = document.getElementById('originalDepthImage').files[0]?.name || '';
+    data.effect_image = document.getElementById('effectImage').files[0]?.name || '';
+    
+    try {
+        const response = await fetch('{{ url_for("admin_product_archives.add_product_archive") }}', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(data)
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            showAlert('success', result.message);
+            setTimeout(() => location.reload(), 1500);
+        } else {
+            showAlert('danger', result.message);
+        }
+    } catch (error) {
+        showAlert('danger', '添加失败：' + error.message);
+    }
+});
+
+// 查看归档详情
+function viewArchiveDetail(id) {
+    fetch(`{{ url_for("admin_product_archives.get_product_archive") }}?id=${id}`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                const archive = data.data;
+                const detailContent = document.getElementById('archiveDetailContent');
+                
+                detailContent.innerHTML = `
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6><i class="fas fa-info-circle me-2"></i>基本信息</h6>
+                            <table class="table table-borderless">
+                                <tr><td><strong>归档ID:</strong></td><td>${archive.id}</td></tr>
+                                <tr><td><strong>授权码:</strong></td><td><span class="badge bg-info">${archive.access_code}</span></td></tr>
+                                <tr><td><strong>效果类别:</strong></td><td><span class="badge ${archive.effect_category === 'AI效果' ? 'bg-success' : 'bg-primary'}">${archive.effect_category}</span></td></tr>
+                                <tr><td><strong>登记时间:</strong></td><td>${archive.registration_time || '未知'}</td></tr>
+                                <tr><td><strong>跟进人:</strong></td><td>${archive.follow_up_person || '未指定'}</td></tr>
+                            </table>
+                            
+                            <h6><i class="fas fa-comment me-2"></i>登记信息</h6>
+                            <div class="border rounded p-3 bg-light">
+                                ${archive.registration_info || '无登记信息'}
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <h6><i class="fas fa-images me-2"></i>图片预览</h6>
+                            <div class="mb-3">
+                                <label class="form-label"><strong>原产品图:</strong></label>
+                                <div><img src="{{ url_for('uploaded_file', filename='') }}${archive.original_product_path}" class="detail-image" alt="原产品图"></div>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label"><strong>原深度图:</strong></label>
+                                <div><img src="{{ url_for('uploaded_file', filename='') }}${archive.original_depth_path}" class="detail-image" alt="原深度图"></div>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label"><strong>产品效果图:</strong></label>
+                                <div><img src="{{ url_for('uploaded_file', filename='') }}${archive.effect_image_path}" class="detail-image" alt="产品效果图"></div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                
+                new bootstrap.Modal(document.getElementById('viewArchiveModal')).show();
+            } else {
+                showAlert('danger', '获取详情失败：' + data.message);
+            }
+        })
+        .catch(error => {
+            showAlert('danger', '获取详情失败：' + error.message);
+        });
+}
+
+// 删除归档
+function deleteArchive(id) {
+    if (confirm('确定要删除这个归档记录吗？此操作不可恢复。')) {
+        fetch('{{ url_for("admin_product_archives.delete_product_archive") }}', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({id: id})
+        })
+        .then(response => response.json())
+        .then(result => {
+            if (result.success) {
+                showAlert('success', result.message);
+                setTimeout(() => location.reload(), 1500);
+            } else {
+                showAlert('danger', result.message);
+            }
+        })
+        .catch(error => {
+            showAlert('danger', '删除失败：' + error.message);
+        });
+    }
+}
+
+// 显示提示信息
+function showAlert(type, message) {
+    const alertDiv = document.createElement('div');
+    alertDiv.className = `alert alert-${type} alert-dismissible fade show position-fixed`;
+    alertDiv.style.cssText = 'top: 20px; right: 20px; z-index: 9999; min-width: 300px;';
+    alertDiv.innerHTML = `
+        ${message}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    `;
+    
+    document.body.appendChild(alertDiv);
+    
+    setTimeout(() => {
+        if (alertDiv.parentNode) {
+            alertDiv.parentNode.removeChild(alertDiv);
+        }
+    }, 5000);
+}
+
+// 图片预览点击放大
+document.addEventListener('click', function(e) {
+    if (e.target.classList.contains('img-thumbnail')) {
+        const modal = document.createElement('div');
+        modal.className = 'modal fade';
+        modal.innerHTML = `
+            <div class="modal-dialog modal-lg">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">图片预览</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body text-center">
+                        <img src="${e.target.src}" class="img-fluid" alt="图片预览">
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        document.body.appendChild(modal);
+        const bsModal = new bootstrap.Modal(modal);
+        bsModal.show();
+        
+        modal.addEventListener('hidden.bs.modal', function() {
+            document.body.removeChild(modal);
+        });
+    }
+}
+});
+</script>
+{% endblock %}

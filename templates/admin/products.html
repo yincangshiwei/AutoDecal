@@ -356,7 +356,7 @@ document.getElementById('addProductForm').addEventListener('submit', async funct
     const formData = new FormData(this);
     
     try {
-        const response = await fetch('{{ url_for("add_product") }}', {
+        const response = await fetch('{{ url_for("admin_products.add_product") }}', {
             method: 'POST',
             body: formData
         });
@@ -376,7 +376,7 @@ document.getElementById('addProductForm').addEventListener('submit', async funct
 
 // 编辑产品
 function editProduct(id) {
-    fetch(`{{ url_for("get_product") }}?id=${id}`)
+    fetch(`{{ url_for("admin_products.get_product") }}?id=${id}`)
         .then(response => response.json())
         .then(data => {
             if (data.success) {
@@ -427,7 +427,7 @@ document.getElementById('editProductForm').addEventListener('submit', async func
     formData.set('id', productId);
     
     try {
-        const response = await fetch('{{ url_for("update_product") }}', {
+        const response = await fetch('{{ url_for("admin_products.update_product") }}', {
             method: 'POST',
             body: formData
         });
@@ -448,7 +448,7 @@ document.getElementById('editProductForm').addEventListener('submit', async func
 // 删除产品
 function deleteProduct(id) {
     if (confirm('确定要删除这个产品吗？此操作不可恢复。')) {
-        fetch('{{ url_for("delete_product") }}', {
+        fetch('{{ url_for("admin_products.delete_product") }}', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -469,7 +469,7 @@ function deleteProduct(id) {
 
 // 查看深度图
 function viewDepthMap(id) {
-    fetch(`{{ url_for("get_product") }}?id=${id}`)
+    fetch(`{{ url_for("admin_products.get_product") }}?id=${id}`)
         .then(response => response.json())
         .then(data => {
             if (data.success) {
@@ -493,7 +493,7 @@ function viewDepthMap(id) {
 // 清空所有产品
 function clearAllProducts() {
     if (confirm('确定要清空所有产品吗？此操作不可恢复。')) {
-        fetch('{{ url_for("clear_products") }}', {
+        fetch('{{ url_for("admin_products.clear_products") }}', {
             method: 'POST'
         })
         .then(response => response.json())

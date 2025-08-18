@@ -364,7 +364,7 @@ function previewEditImage(input) {
 // 获取现有图案名称列表
 async function getExistingPatternNames() {
     try {
-        const response = await fetch('{{ url_for("get_existing_pattern_names") }}');
+        const response = await fetch('{{ url_for("admin_patterns.get_existing_pattern_names") }}');
         const result = await response.json();
         return result.success ? result.names : [];
     } catch (error) {
@@ -566,7 +566,7 @@ document.getElementById('addPatternForm').addEventListener('submit', async funct
     const formData = new FormData(this);
     
     try {
-        const response = await fetch('{{ url_for("add_pattern") }}', {
+        const response = await fetch('{{ url_for("admin_patterns.add_pattern") }}', {
             method: 'POST',
             body: formData
         });
@@ -659,7 +659,7 @@ document.getElementById('batchUploadForm').addEventListener('submit', async func
     uploadBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>上传中...';
     
     try {
-        const response = await fetch('{{ url_for("batch_upload_patterns_with_names") }}', {
+        const response = await fetch('{{ url_for("admin_patterns.batch_upload_patterns") }}', {
             method: 'POST',
             body: formData
         });
@@ -716,7 +716,7 @@ function displayUploadResults(result) {
 
 // 编辑图案
 function editPattern(id) {
-    fetch(`{{ url_for("get_pattern") }}?id=${id}`)
+    fetch(`{{ url_for("admin_patterns.get_pattern") }}?id=${id}`)
         .then(response => response.json())
         .then(data => {
             if (data.success) {
@@ -738,7 +738,7 @@ document.getElementById('editPatternForm').addEventListener('submit', async func
     const formData = new FormData(this);
     
     try {
-        const response = await fetch('{{ url_for("update_pattern") }}', {
+        const response = await fetch('{{ url_for("admin_patterns.update_pattern") }}', {
             method: 'POST',
             body: formData
         });
@@ -759,7 +759,7 @@ document.getElementById('editPatternForm').addEventListener('submit', async func
 // 删除图案
 function deletePattern(id) {
     if (confirm('确定要删除这个印花图案吗？此操作不可恢复。')) {
-        fetch('{{ url_for("delete_pattern") }}', {
+        fetch('{{ url_for("admin_patterns.delete_pattern") }}', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -781,7 +781,7 @@ function deletePattern(id) {
 // 清空所有图案
 function clearAllPatterns() {
     if (confirm('确定要清空所有印花图案吗？此操作不可恢复。')) {
-        fetch('{{ url_for("clear_patterns") }}', {
+        fetch('{{ url_for("admin_patterns.clear_patterns") }}', {
             method: 'POST'
         })
         .then(response => response.json())

@@ -7,6 +7,7 @@ from .admin_users_route import users_bp
 from .admin_access_logs_route import access_logs_bp
 from .admin_theme_backgrounds_route import theme_backgrounds_bp
 from .admin_settings_route import settings_bp
+from .admin_product_archives_route import product_archives_bp
 
 def register_admin_blueprints(app):
     """注册所有管理员蓝图"""
@@ -18,3 +19,4 @@ def register_admin_blueprints(app):
     app.register_blueprint(access_logs_bp)
     app.register_blueprint(theme_backgrounds_bp)
     app.register_blueprint(settings_bp)
+    app.register_blueprint(product_archives_bp)

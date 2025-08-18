@@ -199,7 +199,7 @@ document.getElementById('addCategoryForm').addEventListener('submit', async func
     const data = Object.fromEntries(formData);
     
     try {
-        const response = await fetch('{{ url_for("add_category") }}', {
+        const response = await fetch('{{ url_for("admin_categories.add_category") }}', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -222,7 +222,7 @@ document.getElementById('addCategoryForm').addEventListener('submit', async func
 
 // 编辑分类
 function editCategory(id) {
-    fetch(`{{ url_for("get_category") }}?id=${id}`)
+    fetch(`{{ url_for("admin_categories.get_category") }}?id=${id}`)
         .then(response => response.json())
         .then(data => {
             if (data.success) {
@@ -244,7 +244,7 @@ document.getElementById('editCategoryForm').addEventListener('submit', async fun
     const data = Object.fromEntries(formData);
     
     try {
-        const response = await fetch('{{ url_for("update_category") }}', {
+        const response = await fetch('{{ url_for("admin_categories.update_category") }}', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -268,7 +268,7 @@ document.getElementById('editCategoryForm').addEventListener('submit', async fun
 // 删除分类
 function deleteCategory(id) {
     if (confirm('确定要删除这个分类吗？删除后该分类下的产品将变为未分类状态。')) {
-        fetch('{{ url_for("delete_category") }}', {
+        fetch('{{ url_for("admin_categories.delete_category") }}', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',

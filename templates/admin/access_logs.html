@@ -324,7 +324,7 @@ function copyToClipboard(text) {
 // 强制登出
 function forceLogout(logId) {
     if (confirm('确定要强制登出该用户吗？用户将被立即踢出系统。')) {
-        fetch('{{ url_for("force_logout_access") }}', {
+        fetch('{{ url_for("admin_access_logs.force_logout_access") }}', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -349,7 +349,7 @@ function forceLogout(logId) {
 // 清空离线记录
 function clearOfflineLogs() {
     if (confirm('确定要清空所有已离线的访问记录吗？此操作不可恢复。')) {
-        fetch('{{ url_for("clear_offline_access_logs") }}', {
+        fetch('{{ url_for("admin_access_logs.clear_offline_access_logs") }}', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',

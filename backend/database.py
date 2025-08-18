@@ -126,6 +126,25 @@ def init_database():
         )
     ''')
     
+    # 创建产品效果归档表
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS product_archives (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            access_code TEXT NOT NULL,
+            original_product_image TEXT NOT NULL,
+            original_depth_image TEXT NOT NULL,
+            effect_image TEXT NOT NULL,
+            effect_category TEXT NOT NULL,
+            registration_time DATETIME DEFAULT CURRENT_TIMESTAMP,
+            registration_info TEXT DEFAULT '',
+            follow_up_person TEXT DEFAULT '',
+            original_product_path TEXT NOT NULL,
+            original_depth_path TEXT NOT NULL,
+            effect_image_path TEXT NOT NULL,
+            is_active BOOLEAN DEFAULT 1
+        )
+    ''')
+    
     # 插入默认数据
     init_default_data(cursor)
     
@@ -545,3 +564,43 @@ class DatabaseManager:
         query = "SELECT * FROM theme_backgrounds WHERE id = ?"
         results = DatabaseManager.execute_query(query, (bg_id,))
         return results[0] if results else None
+
+    # 产品效果归档相关操作
+    @staticmethod
+    def get_product_archives(active_only: bool = True) -> List[Dict[str, Any]]:
+        """获取产品效果归档列表"""
+        query = "SELECT * FROM product_archives"
+        if active_only:
+            query += " WHERE is_active = 1"
+        query += " ORDER BY registration_time DESC"
+        return DatabaseManager.execute_query(query)
+    
+    @staticmethod
+    def add_product_archive(access_code: str, original_product_image: str, original_depth_image: str,
+                           effect_image: str, effect_category: str, registration_info: str,
+                           follow_up_person: str, original_product_path: str, original_depth_path: str,
+                           effect_image_path: str) -> int:
+        """添加产品效果归档"""
+        query = '''
+            INSERT INTO product_archives 
+            (access_code, original_product_image, original_depth_image, effect_image, effect_category,
+             registration_info, follow_up_person, original_product_path, original_depth_path, effect_image_path)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        '''
+        return DatabaseManager.execute_insert(query, (
+            access_code, original_product_image, original_depth_image, effect_image, effect_category,
+            registration_info, follow_up_person, original_product_path, original_depth_path, effect_image_path
+        ))
+    
+    @staticmethod
+    def get_product_archive_by_id(archive_id: int) -> Optional[Dict[str, Any]]:
+        """根据ID获取产品效果归档"""
+        query = "SELECT * FROM product_archives WHERE id = ?"
+        results = DatabaseManager.execute_query(query, (archive_id,))
+        return results[0] if results else None
+    
+    @staticmethod
+    def delete_product_archive(archive_id: int) -> int:
+        """删除产品效果归档（软删除）"""
+        query = "UPDATE product_archives SET is_active = 0 WHERE id = ?"
+        return DatabaseManager.execute_update(query, (archive_id,))

@@ -284,7 +284,7 @@ document.getElementById('addUserForm').addEventListener('submit', async function
     const data = Object.fromEntries(formData);
     
     try {
-        const response = await fetch('{{ url_for("add_user") }}', {
+        const response = await fetch('{{ url_for("admin_users.add_user") }}', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -307,7 +307,7 @@ document.getElementById('addUserForm').addEventListener('submit', async function
 
 // 编辑用户
 function editUser(id) {
-    fetch(`{{ url_for("get_user") }}?id=${id}`)
+    fetch(`{{ url_for("admin_users.get_user") }}?id=${id}`)
         .then(response => response.json())
         .then(data => {
             if (data.success) {
@@ -331,7 +331,7 @@ document.getElementById('editUserForm').addEventListener('submit', async functio
     data.is_active = document.getElementById('editIsActive').checked;
     
     try {
-        const response = await fetch('{{ url_for("update_user") }}', {
+        const response = await fetch('{{ url_for("admin_users.update_user") }}', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -355,7 +355,7 @@ document.getElementById('editUserForm').addEventListener('submit', async functio
 // 删除用户
 function deleteUser(id) {
     if (confirm('确定要删除这个用户吗？此操作不可恢复。')) {
-        fetch('{{ url_for("delete_user") }}', {
+        fetch('{{ url_for("admin_users.delete_user") }}', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -378,7 +378,7 @@ function deleteUser(id) {
 function toggleUserStatus(id, isActive) {
     const action = isActive ? '启用' : '禁用';
     if (confirm(`确定要${action}这个用户吗？`)) {
-        fetch('{{ url_for("toggle_user_status") }}', {
+        fetch('{{ url_for("admin_users.toggle_user_status") }}', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',

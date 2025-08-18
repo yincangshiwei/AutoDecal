@@ -329,7 +329,7 @@ document.getElementById('addCodeForm').addEventListener('submit', async function
     const data = Object.fromEntries(formData);
     
     try {
-        const response = await fetch('{{ url_for("add_access_code") }}', {
+        const response = await fetch('{{ url_for("admin_access_codes.add_access_code") }}', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -352,7 +352,7 @@ document.getElementById('addCodeForm').addEventListener('submit', async function
 
 // 编辑授权码
 function editCode(id) {
-    fetch(`{{ url_for("get_access_code") }}?id=${id}`)
+    fetch(`{{ url_for("admin_access_codes.get_access_code") }}?id=${id}`)
         .then(response => response.json())
         .then(data => {
             if (data.success) {
@@ -382,7 +382,7 @@ document.getElementById('editCodeForm').addEventListener('submit', async functio
     const data = Object.fromEntries(formData);
     
     try {
-        const response = await fetch('{{ url_for("update_access_code") }}', {
+        const response = await fetch('{{ url_for("admin_access_codes.update_access_code") }}', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -406,7 +406,7 @@ document.getElementById('editCodeForm').addEventListener('submit', async functio
 // 删除授权码
 function deleteCode(id) {
     if (confirm('确定要删除这个授权码吗？此操作不可恢复。')) {
-        fetch('{{ url_for("delete_access_code") }}', {
+        fetch('{{ url_for("admin_access_codes.delete_access_code") }}', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -429,7 +429,7 @@ function deleteCode(id) {
 function toggleCodeStatus(id, status) {
     const action = status === 'active' ? '启用' : '禁用';
     if (confirm(`确定要${action}这个授权码吗？`)) {
-        fetch('{{ url_for("toggle_access_code_status") }}', {
+        fetch('{{ url_for("admin_access_codes.toggle_access_code_status") }}', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
