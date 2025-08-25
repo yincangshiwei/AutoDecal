@@ -255,16 +255,16 @@ label,
     0 6px 12px rgba(15,23,42,0.18);
 }
 
-/* 按钮：导出按钮采用红色渐变 */
+/* 按钮：导出按钮采用蓝色渐变，适配白色主题 */
 .btn,
 .btn-gradient,
 #exportBtn {
-  background: linear-gradient(90deg, #dc2626 0%, #b91c1c 100%) !important;
+  background: linear-gradient(90deg, #3b82f6 0%, #1d4ed8 100%) !important;
   color: #fff !important;
-  border: 1px solid rgba(220,38,38,0.25) !important;
+  border: 1px solid rgba(59,130,246,0.25) !important;
   border-radius: 10px !important;
   box-shadow:
-    0 10px 20px rgba(220,38,38,0.25),
+    0 10px 20px rgba(59,130,246,0.25),
     inset 0 -2px 0 rgba(0,0,0,0.08);
   transition: transform 0.15s ease, box-shadow 0.2s ease, filter 0.15s ease;
 }
@@ -274,9 +274,266 @@ label,
   transform: translateY(-2px);
   filter: brightness(1.03);
   box-shadow:
-    0 14px 28px rgba(220,38,38,0.28),
+    0 14px 28px rgba(59,130,246,0.28),
     inset 0 -2px 0 rgba(0,0,0,0.1);
 }
+/* 默认主题样式 - 节日白+红 立体浮雕与闪烁边缘 */
+/* 说明：
+   - 不修改布局，仅优化视觉
+   - 主体白色、红色点缀
+   - 每个区域为立体浮雕式，带柔和闪烁边缘
+   - 预览区域发光更强，作为视觉焦点
+*/
+
+/* 主题变量（沿用原键名，便于兼容原样式） */
+:root {
+  --primary-color: #dc2626;           /* 红色主色（节日红） */
+  --primary-light: #fff1f2;           /* 浅红/粉白 */
+  --secondary-color: #991b1b;         /* 深红作辅助 */
+  --accent-color: #ef4444;            /* 强调红 */
+  --background-color: #ffffff;        /* 纯白背景 */
+  --surface-color: #f8fafc;           /* 白系表面 */
+  --text-primary: #0f172a;            /* 深蓝灰黑，增强可读性 */
+  --text-secondary: #475569;          /* 次级文字 */
+  --border-color: #e5e7eb;            /* 柔和边框 */
+  --shadow: 0 12px 24px rgba(15, 23, 42, 0.08);
+  --shadow-hover: 0 18px 36px rgba(15, 23, 42, 0.12);
+
+  /* 扩展变量（本页使用） */
+  --holiday-bg: #f6f7fb;
+  --holiday-surface: #ffffff;
+  --holiday-shadow: rgba(15, 23, 42, 0.12);
+  --holiday-highlight: rgba(255, 255, 255, 0.9);
+  --accent-red-strong: rgba(220, 38, 38, 0.45);
+  --accent-red-glow: rgba(220, 38, 38, 0.20);
+  --accent-red-glow-strong: rgba(220, 38, 38, 0.35);
+  --white-glow: rgba(255, 255, 255, 0.85);
+}
+
+/* 基础覆盖：使页面回归“白为主” */
+body {
+  background-color: var(--holiday-bg) !important;
+  color: var(--text-primary) !important;
+  font-family: 'Roboto', 'Microsoft YaHei', sans-serif;
+}
+
+/* 编辑器容器转为白系浮雕 */
+.editor-container {
+  background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%) !important;
+  border-radius: 16px !important;
+  border: 1px solid rgba(220, 38, 38, 0.08) !important;
+  box-shadow: 0 20px 50px rgba(15, 23, 42, 0.10) !important;
+  backdrop-filter: none !important;
+}
+
+/* 标题采用深色文字（覆盖 text-white 类） */
+.editor-container h1,
+.editor-container h2 {
+  color: var(--text-primary) !important;
+}
+
+/* 辅助文本颜色 */
+label,
+.text-gray-300,
+.text-gray-400 {
+  color: var(--text-secondary) !important;
+}
+
+/* 区域通用浮雕卡片：贴图列表 / 产品列表 / 控制面板 */
+.pattern-list,
+.product-list,
+.control-panel {
+  position: relative;
+  background: var(--holiday-surface) !important;
+  border-radius: 14px !important;
+  border: 1px solid var(--border-color) !important;
+  box-shadow:
+    12px 12px 24px var(--holiday-shadow),
+    -10px -10px 20px var(--holiday-highlight);
+  overflow: hidden;
+  animation: softGlow 3.5s ease-in-out infinite;
+}
+
+/* 区域边缘闪烁（柔和版） */
+.pattern-list::before,
+.product-list::before,
+.control-panel::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: 1px;
+  background: linear-gradient(
+    120deg,
+    rgba(255,255,255,0.95),
+    var(--accent-red-strong),
+    rgba(255,255,255,0.95),
+    var(--accent-red-strong)
+  );
+  background-size: 300% 300%;
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+          mask-composite: exclude;
+  pointer-events: none;
+  animation: edgeShimmer 4s ease-in-out infinite;
+}
+
+/* 预览画布容器：更亮的闪烁边缘与更强的浮雕 */
+.preview-panel .canvas-container {
+  position: relative;
+  background: #ffffff !important;
+  border-radius: 16px !important;
+  border: 1px solid var(--border-color) !important;
+  box-shadow:
+    16px 16px 32px rgba(15, 23, 42, 0.12),
+    -14px -14px 28px rgba(255, 255, 255, 0.95),
+    0 0 0 1px rgba(220, 38, 38, 0.06) inset;
+  animation: softGlowStrong 2.8s ease-in-out infinite;
+}
+
+.preview-panel .canvas-container::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: 1.5px;
+  background: linear-gradient(
+    120deg,
+    rgba(255,255,255,1),
+    rgba(220,38,38,0.65),
+    rgba(255,255,255,1),
+    rgba(220,38,38,0.65)
+  );
+  background-size: 350% 350%;
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+          mask-composite: exclude;
+  pointer-events: none;
+  animation: edgeShimmerStrong 2.8s linear infinite;
+}
+
+/* 画布占位提示 */
+#canvasPlaceholder {
+  color: #94a3b8 !important;
+}
+
+/* 单个项目卡片（贴图/产品）统一浮雕风格 */
+.pattern-item,
+.product-item {
+  background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
+  border: 1px solid var(--border-color) !important;
+  border-radius: 12px;
+  padding: 1rem;
+  margin: 0.5rem;
+  cursor: pointer;
+  text-align: center;
+  display: inline-block;
+  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+  box-shadow:
+    6px 6px 12px rgba(15, 23, 42, 0.08),
+    -4px -4px 10px rgba(255, 255, 255, 0.7);
+}
+
+.pattern-item:hover,
+.product-item:hover {
+  transform: translateY(-2px);
+  border-color: rgba(220, 38, 38, 0.5) !important;
+  box-shadow:
+    0 0 0 2px rgba(220, 38, 38, 0.08),
+    10px 10px 20px rgba(15, 23, 42, 0.12),
+    -8px -8px 16px rgba(255, 255, 255, 0.85);
+}
+
+.pattern-item.active,
+.product-item.active,
+.pattern-item.selected,
+.product-item.selected {
+  border-color: var(--primary-color) !important;
+  background: var(--primary-light);
+  box-shadow:
+    0 0 0 2px var(--accent-red-glow),
+    0 0 18px var(--accent-red-glow-strong),
+    10px 10px 20px rgba(15, 23, 42, 0.12),
+    -8px -8px 16px rgba(255, 255, 255, 0.9);
+}
+
+.pattern-item img,
+.product-item img {
+  max-width: 100px;
+  max-height: 100px;
+  border-radius: 8px;
+  filter: drop-shadow(0 6px 10px rgba(15,23,42,0.18));
+}
+
+/* 选择器/输入控件：白底红色点缀 */
+.category-select,
+.theme-select,
+.blend-mode-select {
+  background: #ffffff !important;
+  border: 1px solid var(--border-color) !important;
+  color: var(--text-primary) !important;
+  border-radius: 10px !important;
+  padding: 0.5rem 0.75rem;
+  box-shadow:
+    3px 3px 8px rgba(15, 23, 42, 0.06),
+    -3px -3px 8px rgba(255, 255, 255, 0.7);
+  transition: box-shadow 0.2s ease, border-color 0.2s ease;
+  appearance: none;
+}
+
+.category-select:hover,
+.theme-select:hover,
+.blend-mode-select:hover {
+  border-color: rgba(220,38,38,0.35) !important;
+}
+
+.category-select:focus,
+.theme-select:focus,
+.blend-mode-select:focus {
+  outline: none !important;
+  border-color: var(--primary-color) !important;
+  box-shadow: 0 0 0 3px rgba(220,38,38,0.15), var(--shadow);
+}
+
+/* 滑块（白底红点+白色光晕） */
+.slider-thumb::-webkit-slider-runnable-track {
+  height: 6px;
+  background: linear-gradient(90deg, #f1f5f9, #ffffff);
+  border-radius: 999px;
+  border: 1px solid var(--border-color);
+  box-shadow: inset 2px 2px 4px rgba(15,23,42,0.06), inset -2px -2px 4px rgba(255,255,255,0.8);
+}
+.slider-thumb::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 20px;
+  height: 20px;
+  background: radial-gradient(circle at 30% 30%, #fff, #fecaca 60%, #dc2626 100%);
+  border-radius: 50%;
+  border: 2px solid #ffffff;
+  cursor: pointer;
+  box-shadow:
+    0 0 0 3px rgba(220,38,38,0.12),
+    0 6px 12px rgba(15,23,42,0.18);
+  margin-top: -8px;
+}
+.slider-thumb::-moz-range-track {
+  height: 6px;
+  background: linear-gradient(90deg, #f1f5f9, #ffffff);
+  border-radius: 999px;
+  border: 1px solid var(--border-color);
+  box-shadow: inset 2px 2px 4px rgba(15,23,42,0.06), inset -2px -2px 4px rgba(255,255,255,0.8);
+}
+.slider-thumb::-moz-range-thumb {
+  width: 20px;
+  height: 20px;
+  background: radial-gradient(circle at 30% 30%, #fff, #fecaca 60%, #dc2626 100%);
+  border-radius: 50%;
+  border: 2px solid #ffffff;
+  box-shadow:
+    0 0 0 3px rgba(220,38,38,0.12),
+    0 6px 12px rgba(15,23,42,0.18);
+}
+
 
 /* 重置按钮白系中性色 */
 #resetBtn {
@@ -439,6 +696,94 @@ label,
 @keyframes slideIn {
   from { transform: translateX(100%); opacity: 0; }
   to   { transform: translateX(0);     opacity: 1; }
+}
+
+/* 归档登记按钮 - 重要操作按钮，持续闪烁突出显示 */
+#archiveBtn {
+  position: relative;
+  background: linear-gradient(135deg, #dc2626 0%, #b91c1c 50%, #991b1b 100%) !important;
+  color: #fff !important;
+  border: 2px solid rgba(220, 38, 38, 0.4) !important;
+  border-radius: 12px !important;
+  padding: 0.75rem 1.5rem !important;
+  font-weight: 600 !important;
+  font-size: 1rem !important;
+  box-shadow:
+    0 0 20px rgba(220, 38, 38, 0.4),
+    0 8px 16px rgba(220, 38, 38, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.2);
+  animation: archiveButtonPulse 1.5s ease-in-out infinite;
+  transition: all 0.2s ease;
+  overflow: hidden;
+}
+
+#archiveBtn::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: 2px;
+  background: linear-gradient(
+    45deg,
+    rgba(255, 255, 255, 0.8),
+    rgba(220, 38, 38, 0.9),
+    rgba(255, 255, 255, 0.8),
+    rgba(220, 38, 38, 0.9)
+  );
+  background-size: 200% 200%;
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+          mask-composite: exclude;
+  pointer-events: none;
+  animation: archiveButtonBorder 2s linear infinite;
+}
+
+#archiveBtn:hover {
+  transform: translateY(-3px) scale(1.02);
+  box-shadow:
+    0 0 30px rgba(220, 38, 38, 0.6),
+    0 12px 24px rgba(220, 38, 38, 0.4),
+    inset 0 1px 0 rgba(255, 255, 255, 0.3);
+  animation-duration: 1s;
+}
+
+#archiveBtn:active {
+  transform: translateY(-1px) scale(1.01);
+  animation-duration: 0.8s;
+}
+
+/* 归档按钮动画 */
+@keyframes archiveButtonPulse {
+  0% {
+    box-shadow:
+      0 0 20px rgba(220, 38, 38, 0.4),
+      0 8px 16px rgba(220, 38, 38, 0.3),
+      inset 0 1px 0 rgba(255, 255, 255, 0.2);
+  }
+  50% {
+    box-shadow:
+      0 0 35px rgba(220, 38, 38, 0.7),
+      0 12px 24px rgba(220, 38, 38, 0.5),
+      inset 0 1px 0 rgba(255, 255, 255, 0.3);
+  }
+  100% {
+    box-shadow:
+      0 0 20px rgba(220, 38, 38, 0.4),
+      0 8px 16px rgba(220, 38, 38, 0.3),
+      inset 0 1px 0 rgba(255, 255, 255, 0.2);
+  }
+}
+
+@keyframes archiveButtonBorder {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
 }
 
 /* 保持 400px 限制并启用垂直滚动，确保边缘闪烁随容器高度变化 */

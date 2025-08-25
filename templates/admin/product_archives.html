@@ -16,8 +16,11 @@
 <!-- 操作按钮 -->
 <div class="row mb-4">
     <div class="col-md-6">
-        <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addArchiveModal">
+        <button type="button" class="btn btn-primary me-2" data-bs-toggle="modal" data-bs-target="#addArchiveModal">
             <i class="fas fa-plus me-2"></i>添加归档
+        </button>
+        <button type="button" class="btn btn-success" data-bs-toggle="modal" data-bs-target="#exportModal">
+            <i class="fas fa-file-excel me-2"></i>导出Excel
         </button>
     </div>
     <div class="col-md-6">
@@ -66,19 +69,19 @@
                         </td>
                         <td>
                             <div class="image-preview">
-                                <img src="{{ url_for('uploaded_file', filename=archive.original_product_path) }}" 
+                                <img src="{{ url_for('uploaded_file', filename='archives/' + archive.original_product_path) }}" 
                                      alt="原产品图" class="img-thumbnail" style="width: 60px; height: 60px; object-fit: cover;">
                             </div>
                         </td>
                         <td>
                             <div class="image-preview">
-                                <img src="{{ url_for('uploaded_file', filename=archive.original_depth_path) }}" 
+                                <img src="{{ url_for('uploaded_file', filename='archives/' + archive.original_depth_path) }}" 
                                      alt="原深度图" class="img-thumbnail" style="width: 60px; height: 60px; object-fit: cover;">
                             </div>
                         </td>
                         <td>
                             <div class="image-preview">
-                                <img src="{{ url_for('uploaded_file', filename=archive.effect_image_path) }}" 
+                                <img src="{{ url_for('uploaded_file', filename='archives/' + archive.effect_image_path) }}" 
                                      alt="产品效果图" class="img-thumbnail" style="width: 60px; height: 60px; object-fit: cover;">
                             </div>
                         </td>
@@ -89,7 +92,7 @@
                                 <span class="badge bg-primary">{{ archive.effect_category }}</span>
                             {% endif %}
                         </td>
-                        <td>{{ archive.registration_time[:16] if archive.registration_time else '未知' }}</td>
+                        <td>{{ archive.register_time[:16] if archive.register_time else '未知' }}</td>
                         <td>{{ archive.follow_up_person or '未指定' }}</td>
                         <td>
                             <button class="btn btn-sm btn-outline-info" onclick="viewArchiveDetail({{ archive.id }})">
@@ -193,9 +196,75 @@
     </div>
 </div>
 
+<!-- 导出Excel模态框 -->
+<div class="modal fade" id="exportModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title"><i class="fas fa-file-excel me-2"></i>导出Excel数据</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="exportForm">
+                <div class="modal-body">
+                    <p class="text-muted mb-3">请选择需要导出的字段：</p>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-check mb-2">
+                                <input class="form-check-input" type="checkbox" id="export_access_code" name="export_fields" value="access_code">
+                                <label class="form-check-label" for="export_access_code">授权码</label>
+                            </div>
+                            <div class="form-check mb-2">
+                                <input class="form-check-input" type="checkbox" id="export_original_product" name="export_fields" value="original_product_path">
+                                <label class="form-check-label" for="export_original_product">原产品图</label>
+                            </div>
+                            <div class="form-check mb-2">
+                                <input class="form-check-input" type="checkbox" id="export_original_depth" name="export_fields" value="original_depth_path">
+                                <label class="form-check-label" for="export_original_depth">原深度图</label>
+                            </div>
+                            <div class="form-check mb-2">
+                                <input class="form-check-input" type="checkbox" id="export_effect_image" name="export_fields" value="effect_image_path" checked>
+                                <label class="form-check-label" for="export_effect_image">产品效果图</label>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-check mb-2">
+                                <input class="form-check-input" type="checkbox" id="export_effect_category" name="export_fields" value="effect_category" checked>
+                                <label class="form-check-label" for="export_effect_category">效果类型</label>
+                            </div>
+                            <div class="form-check mb-2">
+                                <input class="form-check-input" type="checkbox" id="export_register_time" name="export_fields" value="register_time" checked>
+                                <label class="form-check-label" for="export_register_time">登记时间</label>
+                            </div>
+                            <div class="form-check mb-2">
+                                <input class="form-check-input" type="checkbox" id="export_follow_up_person" name="export_fields" value="follow_up_person" checked>
+                                <label class="form-check-label" for="export_follow_up_person">登记人</label>
+                            </div>
+                            <div class="form-check mb-2">
+                                <input class="form-check-input" type="checkbox" id="export_register_info" name="export_fields" value="register_info" checked>
+                                <label class="form-check-label" for="export_register_info">登记信息</label>
+                            </div>
+                        </div>
+                    </div>
+                    <hr>
+                    <div class="d-flex justify-content-between">
+                        <button type="button" class="btn btn-sm btn-outline-primary" onclick="selectAllFields()">全选</button>
+                        <button type="button" class="btn btn-sm btn-outline-secondary" onclick="clearAllFields()">清空</button>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                    <button type="submit" class="btn btn-success">
+                        <i class="fas fa-download me-2"></i>导出Excel
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
 <!-- 查看详情模态框 -->
 <div class="modal fade" id="viewArchiveModal" tabindex="-1">
-    <div class="modal-dialog modal-xl">
+    <div class="modal-dialog modal-lg">
         <div class="modal-content">
             <div class="modal-header">
                 <h5 class="modal-title"><i class="fas fa-eye me-2"></i>归档详情</h5>
@@ -257,6 +326,21 @@
     border-radius: 8px;
     box-shadow: 0 2px 8px rgba(0,0,0,0.1);
 }
+
+.preview-image {
+    width: 100%;
+    max-width: 150px;
+    height: 120px;
+    object-fit: cover;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    cursor: pointer;
+    transition: transform 0.2s ease;
+}
+
+.preview-image:hover {
+    transform: scale(1.05);
+}
 </style>
 {% endblock %}
 
@@ -286,6 +370,72 @@ function filterArchives() {
         }
     });
 }
+
+// 全选字段
+function selectAllFields() {
+    const checkboxes = document.querySelectorAll('input[name="export_fields"]');
+    checkboxes.forEach(checkbox => {
+        checkbox.checked = true;
+    });
+}
+
+// 清空字段选择
+function clearAllFields() {
+    const checkboxes = document.querySelectorAll('input[name="export_fields"]');
+    checkboxes.forEach(checkbox => {
+        checkbox.checked = false;
+    });
+}
+
+// 导出Excel
+document.getElementById('exportForm').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    
+    const selectedFields = [];
+    const checkboxes = document.querySelectorAll('input[name="export_fields"]:checked');
+    
+    if (checkboxes.length === 0) {
+        showAlert('warning', '请至少选择一个字段进行导出');
+        return;
+    }
+    
+    checkboxes.forEach(checkbox => {
+        selectedFields.push(checkbox.value);
+    });
+    
+    try {
+        const response = await fetch('{{ url_for("admin_product_archives.export_excel") }}', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                fields: selectedFields
+            })
+        });
+        
+        if (response.ok) {
+            // 创建下载链接
+            const blob = await response.blob();
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `产品效果归档_${new Date().toISOString().slice(0, 10)}.xlsx`;
+            document.body.appendChild(a);
+            a.click();
+            window.URL.revokeObjectURL(url);
+            document.body.removeChild(a);
+            
+            showAlert('success', 'Excel文件导出成功！');
+            bootstrap.Modal.getInstance(document.getElementById('exportModal')).hide();
+        } else {
+            const result = await response.json();
+            showAlert('danger', result.message || '导出失败');
+        }
+    } catch (error) {
+        showAlert('danger', '导出失败：' + error.message);
+    }
+});
 
 // 添加归档
 document.getElementById('addArchiveForm').addEventListener('submit', async function(e) {
@@ -329,38 +479,52 @@ function viewArchiveDetail(id) {
             if (data.success) {
                 const archive = data.data;
                 const detailContent = document.getElementById('archiveDetailContent');
+                const uploadUrl = '{{ url_for("uploaded_file", filename="") }}';
                 
                 detailContent.innerHTML = `
-                    <div class="row">
-                        <div class="col-md-6">
-                            <h6><i class="fas fa-info-circle me-2"></i>基本信息</h6>
-                            <table class="table table-borderless">
-                                <tr><td><strong>归档ID:</strong></td><td>${archive.id}</td></tr>
-                                <tr><td><strong>授权码:</strong></td><td><span class="badge bg-info">${archive.access_code}</span></td></tr>
-                                <tr><td><strong>效果类别:</strong></td><td><span class="badge ${archive.effect_category === 'AI效果' ? 'bg-success' : 'bg-primary'}">${archive.effect_category}</span></td></tr>
-                                <tr><td><strong>登记时间:</strong></td><td>${archive.registration_time || '未知'}</td></tr>
-                                <tr><td><strong>跟进人:</strong></td><td>${archive.follow_up_person || '未指定'}</td></tr>
-                            </table>
-                            
-                            <h6><i class="fas fa-comment me-2"></i>登记信息</h6>
-                            <div class="border rounded p-3 bg-light">
-                                ${archive.registration_info || '无登记信息'}
+                    <!-- 图片预览 -->
+                    <div class="mb-4">
+                        <h6><i class="fas fa-images me-2"></i>图片预览</h6>
+                        <div class="row">
+                            <div class="col-md-4 text-center mb-3">
+                                <label class="form-label"><strong>原产品图</strong></label>
+                                <div><img src="${uploadUrl}archives/${archive.original_product_path}" class="preview-image" alt="原产品图"></div>
+                            </div>
+                            <div class="col-md-4 text-center mb-3">
+                                <label class="form-label"><strong>原深度图</strong></label>
+                                <div><img src="${uploadUrl}archives/${archive.original_depth_path}" class="preview-image" alt="原深度图"></div>
+                            </div>
+                            <div class="col-md-4 text-center mb-3">
+                                <label class="form-label"><strong>产品效果图</strong></label>
+                                <div><img src="${uploadUrl}archives/${archive.effect_image_path}" class="preview-image" alt="产品效果图"></div>
                             </div>
                         </div>
-                        <div class="col-md-6">
-                            <h6><i class="fas fa-images me-2"></i>图片预览</h6>
-                            <div class="mb-3">
-                                <label class="form-label"><strong>原产品图:</strong></label>
-                                <div><img src="{{ url_for('uploaded_file', filename='') }}${archive.original_product_path}" class="detail-image" alt="原产品图"></div>
+                    </div>
+                    
+                    <!-- 基本信息 -->
+                    <div class="mb-4">
+                        <h6><i class="fas fa-info-circle me-2"></i>基本信息</h6>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <table class="table table-borderless table-sm">
+                                    <tr><td><strong>授权码:</strong></td><td><span class="badge bg-info">${archive.access_code}</span></td></tr>
+                                    <tr><td><strong>效果类别:</strong></td><td><span class="badge ${archive.effect_category === 'AI效果' ? 'bg-success' : 'bg-primary'}">${archive.effect_category}</span></td></tr>
+                                </table>
                             </div>
-                            <div class="mb-3">
-                                <label class="form-label"><strong>原深度图:</strong></label>
-                                <div><img src="{{ url_for('uploaded_file', filename='') }}${archive.original_depth_path}" class="detail-image" alt="原深度图"></div>
+                            <div class="col-md-6">
+                                <table class="table table-borderless table-sm">
+                                    <tr><td><strong>登记时间:</strong></td><td>${archive.register_time || '未知'}</td></tr>
+                                    <tr><td><strong>跟进人:</strong></td><td>${archive.follow_up_person || '未指定'}</td></tr>
+                                </table>
                             </div>
-                            <div class="mb-3">
-                                <label class="form-label"><strong>产品效果图:</strong></label>
-                                <div><img src="{{ url_for('uploaded_file', filename='') }}${archive.effect_image_path}" class="detail-image" alt="产品效果图"></div>
-                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- 登记信息 -->
+                    <div class="mb-3">
+                        <h6><i class="fas fa-comment me-2"></i>登记信息</h6>
+                        <div class="border rounded p-3 bg-light">
+                            ${archive.register_info || '无登记信息'}
                         </div>
                     </div>
                 `;
@@ -421,7 +585,7 @@ function showAlert(type, message) {
 
 // 图片预览点击放大
 document.addEventListener('click', function(e) {
-    if (e.target.classList.contains('img-thumbnail')) {
+    if (e.target.classList.contains('img-thumbnail') || e.target.classList.contains('preview-image')) {
         const modal = document.createElement('div');
         modal.className = 'modal fade';
         modal.innerHTML = `
@@ -446,7 +610,6 @@ document.addEventListener('click', function(e) {
             document.body.removeChild(modal);
         });
     }
-}
 });
 </script>
 {% endblock %}

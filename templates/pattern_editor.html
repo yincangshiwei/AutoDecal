@@ -306,6 +306,7 @@
         <div class="flex gap-4">
           <button id="resetBtn" class="px-4 py-2 rounded-md bg-gray-700 text-gray-300 hover:bg-gray-600 transition" data-i18n="reset">重置</button>
           <button id="exportBtn" class="px-4 py-2 rounded-md btn-gradient" data-i18n="export">导出图片</button>
+          <button id="archiveBtn" class="px-4 py-2 rounded-md bg-red-600 text-white hover:bg-red-700 transition" data-i18n="archive">归档登记</button>
         </div>
       </div>
     </div>
@@ -373,6 +374,47 @@
     </div>
   </div>
 
+  <!-- 归档登记弹窗 -->
+  <div id="archiveModal" class="hidden fixed inset-0 z-50 flex items-center justify-center">
+    <div class="theme-modal-backdrop absolute inset-0"></div>
+    <div class="theme-modal relative z-10 max-w-lg w-[90%] rounded-xl p-6">
+      <div class="flex justify-between items-center mb-4">
+        <h3 class="text-lg font-semibold" data-i18n="archive-title">产品效果归档登记</h3>
+        <button id="archiveClose" class="theme-modal-close" aria-label="Close">×</button>
+      </div>
+      <form id="archiveForm" class="space-y-4">
+        <div class="space-y-2">
+          <label class="text-sm font-medium" data-i18n="register-person">登记人:</label>
+          <input type="text" id="registerPerson" name="registerPerson" required 
+                 class="w-full px-3 py-2 rounded-md bg-gray-100 border border-gray-300 text-gray-800" 
+                 placeholder="请输入登记人姓名">
+        </div>
+        <div class="space-y-2">
+          <label class="text-sm font-medium" data-i18n="register-info">登记信息:</label>
+          <textarea id="registerInfo" name="registerInfo" rows="3" 
+                    class="w-full px-3 py-2 rounded-md bg-gray-100 border border-gray-300 text-gray-800" 
+                    placeholder="请输入登记信息"></textarea>
+        </div>
+        <div class="space-y-2">
+          <label class="text-sm font-medium" data-i18n="effect-category">产品效果类别:</label>
+          <select id="effectCategory" name="effectCategory" 
+                  class="w-full px-3 py-2 rounded-md bg-gray-100 border border-gray-300 text-gray-800">
+            <option value="基础效果">基础效果</option>
+            <option value="AI效果">AI效果</option>
+          </select>
+        </div>
+        <div class="flex justify-end gap-3 mt-6">
+          <button type="button" id="archiveCancel" 
+                  class="px-4 py-2 rounded-md bg-gray-300 text-gray-700 hover:bg-gray-400 transition" 
+                  data-i18n="cancel">取消</button>
+          <button type="submit" 
+                  class="px-4 py-2 rounded-md bg-red-600 text-white hover:bg-red-700 transition" 
+                  data-i18n="submit-archive">提交归档</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
   <div id="preload-images" style="display:none;">
     <!-- 动态加载的图片将在这里预加载 -->
   </div>
@@ -398,6 +440,7 @@
         'perspective': '透视强度',
         'reset': '重置',
         'export': '导出图片',
+        'archive': '归档登记',
         'theme': '主题:',
         'background': '背景图:',
         'default': '默认',
@@ -413,7 +456,13 @@
         'lower-opacity': '下层透明度',
         'auto-play-theme': '自动播放主题',
         'auto-play-bg': '自动播放背景图',
-        'duration-seconds': '时长(秒)'
+        'duration-seconds': '时长(秒)',
+        'archive-title': '产品效果归档登记',
+        'register-person': '登记人',
+        'register-info': '登记信息',
+        'effect-category': '产品效果类别',
+        'cancel': '取消',
+        'submit-archive': '提交归档'
       },
       'en': {
         'page-title': '3D Wrap Texture Editor',
@@ -432,6 +481,7 @@
         'perspective': 'Perspective',
         'reset': 'Reset',
         'export': 'Export Image',
+        'archive': 'Archive Registration',
         'theme': 'Theme:',
         'background': 'Background:',
         'default': 'Default',
@@ -447,7 +497,13 @@
         'lower-opacity': 'Lower Opacity',
         'auto-play-theme': 'Auto-play Theme',
         'auto-play-bg': 'Auto-play Backgrounds',
-        'duration-seconds': 'Duration(s)'
+        'duration-seconds': 'Duration(s)',
+        'archive-title': 'Product Effect Archive Registration',
+        'register-person': 'Registrant',
+        'register-info': 'Registration Info',
+        'effect-category': 'Effect Category',
+        'cancel': 'Cancel',
+        'submit-archive': 'Submit Archive'
       }
     };
 

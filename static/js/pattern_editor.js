@@ -1160,6 +1160,7 @@ window.addEventListener('load', () => {
     }
 
     // --- Part 7: 操作按钮 ---
+    // --- Part 7: 操作按钮 ---
     function setupActions() {
         const exportBtn = document.getElementById('exportBtn');
         if (exportBtn) {
@@ -1205,6 +1206,92 @@ window.addEventListener('load', () => {
                 });
                 
                 fitPattern();
+            });
+        }
+
+        // 归档登记按钮
+        const archiveBtn = document.getElementById('archiveBtn');
+        const archiveModal = document.getElementById('archiveModal');
+        const archiveClose = document.getElementById('archiveClose');
+        const archiveCancel = document.getElementById('archiveCancel');
+        const archiveBackdrop = archiveModal ? archiveModal.querySelector('.theme-modal-backdrop') : null;
+        
+        if (archiveBtn && archiveModal) {
+            archiveBtn.addEventListener('click', () => {
+                // 检查是否已选择产品
+                if (!state.productId) {
+                    alert('请先选择产品图');
+                    return;
+                }
+                archiveModal.classList.remove('hidden');
+            });
+        }
+        
+        if (archiveClose && archiveModal) {
+            archiveClose.addEventListener('click', () => { archiveModal.classList.add('hidden'); });
+        }
+        
+        if (archiveCancel && archiveModal) {
+            archiveCancel.addEventListener('click', () => { archiveModal.classList.add('hidden'); });
+        }
+        
+        if (archiveBackdrop && archiveModal) {
+            archiveBackdrop.addEventListener('click', () => { archiveModal.classList.add('hidden'); });
+        }
+
+        // 归档表单提交
+        const archiveForm = document.getElementById('archiveForm');
+        if (archiveForm) {
+            archiveForm.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                
+                const formData = new FormData(archiveForm);
+                const registerPerson = formData.get('registerPerson');
+                const registerInfo = formData.get('registerInfo');
+                const effectCategory = formData.get('effectCategory');
+                
+                if (!registerPerson.trim()) {
+                    alert('请填写登记人');
+                    return;
+                }
+                
+                if (!state.productId) {
+                    alert('请先选择产品图');
+                    return;
+                }
+                
+                // 获取当前画布的图片数据
+                const effectImageData = renderer.domElement.toDataURL('image/png');
+                
+                try {
+                    const response = await fetch('/api/archive', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            registerPerson: registerPerson.trim(),
+                            registerInfo: registerInfo.trim(),
+                            effectCategory: effectCategory,
+                            productId: state.productId,
+                            patternId: state.patternId,
+                            effectImageData: effectImageData
+                        })
+                    });
+                    
+                    const result = await response.json();
+                    
+                    if (result.success) {
+                        alert('归档登记成功！');
+                        archiveModal.classList.add('hidden');
+                        archiveForm.reset();
+                    } else {
+                        alert('归档失败：' + result.message);
+                    }
+                } catch (error) {
+                    console.error('归档请求失败:', error);
+                    alert('归档失败，请重试');
+                }
             });
         }
     }

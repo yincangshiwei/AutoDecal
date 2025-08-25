@@ -159,4 +159,103 @@ def create_api_blueprint():
         except Exception as e:
             return jsonify({'success': False, 'message': f'获取背景图失败: {str(e)}'})
     
+    @api.route('/archive', methods=['POST'])
+    @access_code_required
+    def archive_product():
+        """产品效果归档登记"""
+        try:
+            data = request.get_json()
+            
+            # 获取表单数据
+            register_person = data.get('registerPerson', '').strip()
+            register_info = data.get('registerInfo', '').strip()
+            effect_category = data.get('effectCategory', '基础效果')
+            product_id = data.get('productId')
+            pattern_id = data.get('patternId')
+            effect_image_data = data.get('effectImageData')
+            
+            if not register_person:
+                return jsonify({'success': False, 'message': '请填写登记人'})
+            
+            if not product_id:
+                return jsonify({'success': False, 'message': '请先选择产品图'})
+            
+            if not effect_image_data:
+                return jsonify({'success': False, 'message': '请先生成效果图'})
+            
+            # 获取当前授权码
+            access_code = session.get('access_code', '')
+            
+            # 获取产品信息
+            product_query = "SELECT * FROM products WHERE id = ?"
+            product_results = DatabaseManager.execute_query(product_query, (product_id,))
+            if not product_results:
+                return jsonify({'success': False, 'message': '产品不存在'})
+            
+            product = product_results[0]
+            
+            # 创建归档目录
+            import os
+            from datetime import datetime
+            import base64
+            
+            archive_dir = os.path.join('uploads', 'archives')
+            os.makedirs(archive_dir, exist_ok=True)
+            
+            timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+            
+            # 复制原产品图到归档目录
+            # 复制原产品图到归档目录（使用与后台管理一致的命名格式）
+            original_product_path = os.path.join('uploads', 'products', product['product_image_path'])
+            archive_product_filename = f"original_product_{timestamp}.png"
+            archive_product_path = os.path.join(archive_dir, archive_product_filename)
+            
+            if os.path.exists(original_product_path):
+                import shutil
+                shutil.copy2(original_product_path, archive_product_path)
+            
+            # 复制深度图到归档目录（使用与后台管理一致的命名格式）
+            original_depth_path = os.path.join('uploads', 'depth_maps', product['depth_image_path'])
+            archive_depth_filename = f"original_depth_{timestamp}.png"
+            archive_depth_path = os.path.join(archive_dir, archive_depth_filename)
+            
+            if os.path.exists(original_depth_path):
+                shutil.copy2(original_depth_path, archive_depth_path)
+            
+            # 保存效果图（使用与后台管理一致的命名格式）
+            effect_filename = f"effect_{timestamp}.png"
+            effect_path = os.path.join(archive_dir, effect_filename)
+            
+            # 解码base64图片数据
+            if effect_image_data.startswith('data:image/png;base64,'):
+                image_data = effect_image_data.split(',')[1]
+                with open(effect_path, 'wb') as f:
+                    f.write(base64.b64decode(image_data))
+            
+            # 保存归档记录到数据库
+            # 保存归档记录到数据库
+            archive_id = DatabaseManager.add_product_archive(
+                access_code=access_code,
+                original_product_image=product['product_image'],
+                original_depth_image=product['depth_image'],
+                effect_image=effect_filename,
+                effect_category=effect_category,
+                register_info=register_info,
+                follow_up_person=register_person,
+                original_product_path=archive_product_filename,
+                original_depth_path=archive_depth_filename,
+                effect_image_path=effect_filename
+            )
+            
+            return jsonify({
+                'success': True,
+                'message': '归档登记成功！',
+                'archive_id': archive_id
+            })
+            
+        except Exception as e:
+            import traceback
+            traceback.print_exc()
+            return jsonify({'success': False, 'message': f'归档失败: {str(e)}'})
+    
     return api

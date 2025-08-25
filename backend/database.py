@@ -576,20 +576,21 @@ class DatabaseManager:
         return DatabaseManager.execute_query(query)
     
     @staticmethod
+    @staticmethod
     def add_product_archive(access_code: str, original_product_image: str, original_depth_image: str,
-                           effect_image: str, effect_category: str, registration_info: str,
+                           effect_image: str, effect_category: str, register_info: str,
                            follow_up_person: str, original_product_path: str, original_depth_path: str,
                            effect_image_path: str) -> int:
         """添加产品效果归档"""
         query = '''
             INSERT INTO product_archives 
             (access_code, original_product_image, original_depth_image, effect_image, effect_category,
-             registration_info, follow_up_person, original_product_path, original_depth_path, effect_image_path)
+             register_info, follow_up_person, original_product_path, original_depth_path, effect_image_path)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         '''
         return DatabaseManager.execute_insert(query, (
             access_code, original_product_image, original_depth_image, effect_image, effect_category,
-            registration_info, follow_up_person, original_product_path, original_depth_path, effect_image_path
+            register_info, follow_up_person, original_product_path, original_depth_path, effect_image_path
         ))
     
     @staticmethod

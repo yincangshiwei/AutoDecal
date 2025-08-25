@@ -27,6 +27,7 @@ app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 os.makedirs(os.path.join(UPLOAD_FOLDER, 'patterns'), exist_ok=True)
 os.makedirs(os.path.join(UPLOAD_FOLDER, 'products'), exist_ok=True)
 os.makedirs(os.path.join(UPLOAD_FOLDER, 'depth_maps'), exist_ok=True)
+os.makedirs(os.path.join(UPLOAD_FOLDER, 'archives'), exist_ok=True)
 
 # 初始化数据库
 init_database()
