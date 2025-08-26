@@ -176,7 +176,7 @@ def verify_access_code():
         query = '''
             SELECT * FROM access_codes 
             WHERE code = ? AND is_active = 1 
-            AND (expires_at IS NULL OR expires_at >= datetime('now'))
+            AND (expires_at IS NULL OR expires_at >= datetime('now', 'localtime'))
             AND (max_uses IS NULL OR used_count < max_uses)
         '''
         results = DatabaseManager.execute_query(query, (access_code,))

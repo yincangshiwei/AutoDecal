@@ -44,7 +44,7 @@ def init_database():
             is_default BOOLEAN DEFAULT 0,
             sort_order INTEGER DEFAULT 0,
             is_active BOOLEAN DEFAULT 1,
-            created_time DATETIME DEFAULT CURRENT_TIMESTAMP
+            created_time DATETIME DEFAULT (datetime('now', 'localtime'))
         )
     ''')
     
@@ -58,7 +58,7 @@ def init_database():
             depth_image TEXT NOT NULL,
             product_image_path TEXT NOT NULL,
             depth_image_path TEXT NOT NULL,
-            upload_time DATETIME DEFAULT CURRENT_TIMESTAMP,
+            upload_time DATETIME DEFAULT (datetime('now', 'localtime')),
             image_width INTEGER DEFAULT 0,
             image_height INTEGER DEFAULT 0,
             is_active BOOLEAN DEFAULT 1,
@@ -76,7 +76,7 @@ def init_database():
             max_uses INTEGER,
             used_count INTEGER DEFAULT 0,
             is_active BOOLEAN DEFAULT 1,
-            created_time DATETIME DEFAULT CURRENT_TIMESTAMP
+            created_time DATETIME DEFAULT (datetime('now', 'localtime'))
         )
     ''')
     
@@ -90,8 +90,8 @@ def init_database():
             location TEXT,
             browser TEXT,
             operating_system TEXT,
-            login_time DATETIME DEFAULT CURRENT_TIMESTAMP,
-            last_activity DATETIME DEFAULT CURRENT_TIMESTAMP,
+            login_time DATETIME DEFAULT (datetime('now', 'localtime')),
+            last_activity DATETIME DEFAULT (datetime('now', 'localtime')),
             is_active BOOLEAN DEFAULT 1,
             logout_time DATETIME,
             FOREIGN KEY (access_code) REFERENCES access_codes (code)
@@ -106,7 +106,7 @@ def init_database():
             password_hash TEXT NOT NULL,
             is_admin BOOLEAN DEFAULT 0,
             permissions TEXT DEFAULT '{}',
-            created_time DATETIME DEFAULT CURRENT_TIMESTAMP,
+            created_time DATETIME DEFAULT (datetime('now', 'localtime')),
             last_login DATETIME,
             is_active BOOLEAN DEFAULT 1
         )
@@ -120,7 +120,7 @@ def init_database():
             background_name TEXT NOT NULL,
             file_path TEXT NOT NULL,
             file_size INTEGER DEFAULT 0,
-            upload_time DATETIME DEFAULT CURRENT_TIMESTAMP,
+            upload_time DATETIME DEFAULT (datetime('now', 'localtime')),
             is_active BOOLEAN DEFAULT 1,
             UNIQUE(theme_name, background_name)
         )
@@ -135,7 +135,7 @@ def init_database():
             original_depth_image TEXT NOT NULL,
             effect_image TEXT NOT NULL,
             effect_category TEXT NOT NULL,
-            register_time DATETIME DEFAULT CURRENT_TIMESTAMP,
+            register_time DATETIME DEFAULT (datetime('now', 'localtime')),
             register_info TEXT DEFAULT '',
             follow_up_person TEXT DEFAULT '',
             original_product_path TEXT NOT NULL,
@@ -376,7 +376,7 @@ class DatabaseManager:
         query = '''
             SELECT * FROM access_codes 
             WHERE code = ? AND is_active = 1 
-            AND (expires_at IS NULL OR expires_at >= datetime('now'))
+            AND (expires_at IS NULL OR expires_at >= datetime('now', 'localtime'))
             AND (max_uses IS NULL OR used_count < max_uses)
         '''
         results = DatabaseManager.execute_query(query, (code,))
@@ -395,8 +395,8 @@ class DatabaseManager:
         """添加访问记录"""
         query = '''
             INSERT INTO access_logs 
-            (session_id, access_code, ip_address, location, browser, operating_system)
-            VALUES (?, ?, ?, ?, ?, ?)
+            (session_id, access_code, ip_address, location, browser, operating_system, login_time, last_activity)
+            VALUES (?, ?, ?, ?, ?, ?, datetime('now', 'localtime'), datetime('now', 'localtime'))
         '''
         return DatabaseManager.execute_insert(query, (
             session_id, access_code, ip_address, location, browser, operating_system
@@ -429,7 +429,7 @@ class DatabaseManager:
     @staticmethod
     def update_access_log_activity(session_id: str) -> int:
         """更新访问记录的最后活动时间"""
-        query = "UPDATE access_logs SET last_activity = datetime('now') WHERE session_id = ? AND is_active = 1"
+        query = "UPDATE access_logs SET last_activity = datetime('now', 'localtime') WHERE session_id = ? AND is_active = 1"
         return DatabaseManager.execute_update(query, (session_id,))
     
     @staticmethod
@@ -437,7 +437,7 @@ class DatabaseManager:
         """登出访问记录"""
         query = '''
             UPDATE access_logs 
-            SET is_active = 0, logout_time = datetime('now') 
+            SET is_active = 0, logout_time = datetime('now', 'localtime') 
             WHERE session_id = ? AND is_active = 1
         '''
         return DatabaseManager.execute_update(query, (session_id,))
@@ -447,7 +447,7 @@ class DatabaseManager:
         """强制登出指定的访问记录"""
         query = '''
             UPDATE access_logs 
-            SET is_active = 0, logout_time = datetime('now') 
+            SET is_active = 0, logout_time = datetime('now', 'localtime') 
             WHERE id = ?
         '''
         return DatabaseManager.execute_update(query, (log_id,))
@@ -483,7 +483,7 @@ class DatabaseManager:
     @staticmethod
     def update_last_login(username: str) -> int:
         """更新用户最后登录时间"""
-        query = "UPDATE users SET last_login = datetime('now') WHERE username = ?"
+        query = "UPDATE users SET last_login = datetime('now', 'localtime') WHERE username = ?"
         return DatabaseManager.execute_update(query, (username,))
 
     # 主题背景图相关操作
