@@ -1248,7 +1248,7 @@ window.addEventListener('load', () => {
                 const formData = new FormData(archiveForm);
                 const registerPerson = formData.get('registerPerson');
                 const registerInfo = formData.get('registerInfo');
-                const effectCategory = formData.get('effectCategory');
+                const effectCategory = '基础效果'; // 默认使用基础效果
                 
                 if (!registerPerson.trim()) {
                     alert('请填写登记人');

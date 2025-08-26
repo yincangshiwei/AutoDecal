@@ -4,6 +4,10 @@
 """
 from flask import Flask, render_template, request, jsonify, send_from_directory, session, redirect, url_for
 import os
+import threading
+import subprocess
+import time
+import requests
 from backend.database import init_database
 from frontend.api import create_api_blueprint
 from backend.auth import init_auth
@@ -44,6 +48,41 @@ except Exception as e:
     print(f"✗ API蓝图注册失败: {e}")
     import traceback
     traceback.print_exc()
+
+# 添加中间件来跳过ngrok警告页面
+@app.after_request
+def add_ngrok_skip_header(response):
+    """添加ngrok跳过浏览器警告的头部"""
+    # 为所有响应添加跳过ngrok警告的头部
+    response.headers['ngrok-skip-browser-warning'] = 'true'
+    response.headers['X-Custom-User-Agent'] = 'AutoDecal-App/1.0'
+    
+    # 如果是HTML响应，注入JavaScript自动跳转脚本
+    if response.content_type and 'text/html' in response.content_type:
+        bypass_script = '''
+        <script>
+        // 自动跳过ngrok警告页面
+        (function() {
+            if (window.location.hostname.includes('ngrok') && document.title.includes('ngrok')) {
+                const visitButton = document.querySelector('button[onclick*="visit"]') || 
+                                  document.querySelector('a[href*="visit"]') ||
+                                  document.querySelector('.visit-site');
+                if (visitButton) {
+                    visitButton.click();
+                }
+            }
+        })();
+        </script>
+        '''
+        
+        # 将脚本注入到HTML中
+        if hasattr(response, 'data'):
+            html_content = response.get_data(as_text=True)
+            if '</head>' in html_content:
+                html_content = html_content.replace('</head>', bypass_script + '</head>')
+                response.set_data(html_content)
+    
+    return response
 
 # 添加中间件来更新用户活动时间和检查会话状态
 @app.before_request
@@ -191,6 +230,153 @@ def uploaded_file(filename):
     """提供上传文件的访问"""
     return send_from_directory(app.config['UPLOAD_FOLDER'], filename)
 
+def get_ngrok_public_url():
+    """获取ngrok公网链接"""
+    try:
+        response = requests.get('http://localhost:4040/api/tunnels', timeout=5)
+        if response.status_code == 200:
+            data = response.json()
+            tunnels = data.get('tunnels', [])
+            
+            # 打印调试信息
+            print(f"调试: 找到 {len(tunnels)} 个隧道")
+            for i, tunnel in enumerate(tunnels):
+                print(f"调试: 隧道 {i+1} - 协议: {tunnel.get('proto')}, URL: {tunnel.get('public_url')}")
+            
+            # 优先返回HTTP，避免HTTPS的警告页面
+            for tunnel in tunnels:
+                if tunnel.get('proto') == 'http':
+                    return tunnel.get('public_url')
+            
+            # 如果没有HTTP，再返回HTTPS
+            for tunnel in tunnels:
+                if tunnel.get('proto') == 'https':
+                    return tunnel.get('public_url')
+                    
+            # 如果都没找到，返回第一个可用的
+            if tunnels:
+                return tunnels[0].get('public_url')
+                
+        return None
+    except Exception as e:
+        print(f"调试: 获取ngrok链接时出错: {e}")
+        return None
+
+def setup_ngrok_tunnel(port=5000):
+    """设置ngrok隧道并获取公网链接"""
+    try:
+        # 检查ngrok是否已安装
+        result = subprocess.run(['ngrok', 'version'], capture_output=True, text=True)
+        if result.returncode != 0:
+            print("⚠️  ngrok未安装，无法创建外部链接")
+            print("   请访问 https://ngrok.com/ 下载并安装ngrok")
+            return None
+        
+        print("🌐 正在启动ngrok隧道...")
+        print("   这可能需要几秒钟时间...")
+        
+        # 启动ngrok隧道（后台运行）- 同时生成HTTP和HTTPS隧道
+        ngrok_cmd = ['ngrok', 'http', str(port), '--host-header=rewrite']
+        print(f"调试: 执行命令: {' '.join(ngrok_cmd)}")
+        
+        ngrok_process = subprocess.Popen(
+            ngrok_cmd,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True
+        )
+        
+        # 给ngrok一些时间启动
+        time.sleep(8)
+        
+        # 检查ngrok进程是否正常运行
+        if ngrok_process.poll() is not None:
+            stdout, stderr = ngrok_process.communicate()
+            print(f"调试: ngrok进程异常退出")
+            print(f"调试: stdout: {stdout}")
+            print(f"调试: stderr: {stderr}")
+            return None
+        else:
+            print("调试: ngrok进程正在运行")
+        
+        # 尝试获取公网链接
+        public_url = None
+        max_attempts = 10
+        for attempt in range(max_attempts):
+            public_url = get_ngrok_public_url()
+            if public_url:
+                break
+            time.sleep(1)
+        
+        print("=" * 60)
+        print("🌍 ngrok隧道已启动！")
+        print("=" * 60)
+        print(f"🏠 本地访问: http://localhost:{port}")
+        
+        if public_url:
+            print(f"🔗 公网链接: {public_url}")
+            print("   可以直接分享此链接给其他人访问")
+            print("   ✓ 已同时生成HTTP和HTTPS隧道:")
+            print("     - --scheme=http,https (同时支持两种协议)")
+            print("     - --host-header=rewrite (重写主机头)")
+            print("     - HTTP响应头: ngrok-skip-browser-warning")
+            print("     - JavaScript自动跳转脚本")
+            print("   💡 提示: HTTP链接无警告页面，HTTPS链接更安全")
+        else:
+            print("🔗 公网链接: 获取失败，请访问 http://localhost:4040 查看")
+            print("   或在新终端运行: curl http://localhost:4040/api/tunnels")
+        
+        print("=" * 60)
+        
+        return public_url, ngrok_process
+            
+    except FileNotFoundError:
+        print("⚠️  ngrok未找到，请确保已安装并添加到PATH")
+        print("   下载地址: https://ngrok.com/download")
+        return None
+    except Exception as e:
+        print(f"⚠️  启动ngrok失败: {e}")
+        return None
+
+def start_flask_with_share(share=False, port=5000):
+    """启动Flask应用，支持外部分享"""
+    ngrok_process = None
+    public_url = None
+    
+    if share:
+        result = setup_ngrok_tunnel(port)
+        if result:
+            public_url, ngrok_process = result
+            
+            # 如果成功获取到公网链接，启动定时检查线程
+            if public_url and ngrok_process:
+                def monitor_ngrok():
+                    """监控ngrok状态并更新公网链接"""
+                    current_public_url = public_url
+                    while ngrok_process and ngrok_process.poll() is None:
+                        time.sleep(30)  # 每30秒检查一次
+                        new_url = get_ngrok_public_url()
+                        if new_url and new_url != current_public_url:
+                            print(f"\n🔄 公网链接已更新: {new_url}")
+                            current_public_url = new_url
+                
+                # 启动监控线程
+                monitor_thread = threading.Thread(target=monitor_ngrok, daemon=True)
+                monitor_thread.start()
+    
+    try:
+        # 启动Flask应用
+        app.run(host='0.0.0.0', port=port, debug=True, use_reloader=False)
+    except KeyboardInterrupt:
+        print("\n🛑 正在关闭服务器...")
+    finally:
+        # 清理ngrok进程
+        if ngrok_process:
+            print("🔄 正在关闭外部链接...")
+            ngrok_process.terminate()
+            ngrok_process.wait()
+            print("✅ 外部链接已关闭")
+
 def initialize_default_data():
     """初始化默认数据"""
     from backend.auth import AuthManager, AccessCodeManager
@@ -253,6 +439,15 @@ if __name__ == '__main__':
     print("-" * 60)
     print("🎫 前台访问授权码:")
     print(f"   授权码: {temp_access_code}")
+    print("-" * 60)
     
-    # 启动Flask前台应用
-    app.run(host='0.0.0.0', port=5000, debug=True, use_reloader=False)
+    # 检查是否启用外部分享
+    import sys
+    share_enabled = '--share' in sys.argv or '-s' in sys.argv
+    
+    if share_enabled:
+        print("🌐 外部分享模式已启用")
+        print("   正在创建公网访问链接...")
+    
+    # 启动Flask前台应用（支持外部分享）
+    start_flask_with_share(share=share_enabled, port=5000)
