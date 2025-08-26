@@ -7,6 +7,7 @@ import os
 from datetime import datetime
 from backend.database import DatabaseManager, init_database
 from backend.auth import AuthManager
+from backend.permissions import PermissionManager
 from routes.admin import register_admin_blueprints
 
 # 创建独立的Flask应用
@@ -32,6 +33,16 @@ os.makedirs(os.path.join(UPLOAD_FOLDER, 'depth_maps'), exist_ok=True)
 
 # 初始化数据库
 init_database()
+
+# 注册模板全局函数
+@app.context_processor
+def inject_permissions():
+    """向模板注入权限检查函数"""
+    return {
+        'has_menu_permission': PermissionManager.has_menu_permission,
+        'has_action_permission': PermissionManager.has_action_permission,
+        'get_user_permissions': PermissionManager.get_user_permissions
+    }
 
 # 注册所有管理员蓝图
 register_admin_blueprints(app)
@@ -90,14 +101,14 @@ def index():
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
-    """管理员登录"""
+    """用户登录"""
     if request.method == 'POST':
         username = request.form.get('username')
         password = request.form.get('password')
         
         try:
-            # 验证管理员账户
-            query = "SELECT * FROM users WHERE username = ? AND is_admin = 1"
+            # 验证用户账户（允许所有有效用户登录）
+            query = "SELECT * FROM users WHERE username = ? AND is_active = 1"
             results = DatabaseManager.execute_query(query, (username,))
             
             if results:
@@ -106,12 +117,18 @@ def login():
                 if AuthManager.verify_password(password, user['password_hash']):
                     session['admin_user_id'] = user['id']
                     session['admin_username'] = user['username']
+                    session['user_role_id'] = user.get('role_id')
+                    session['is_admin'] = user['is_admin']
+                    
+                    # 更新最后登录时间
+                    DatabaseManager.update_last_login(username)
+                    
                     flash('登录成功！', 'success')
                     return redirect(url_for('index'))
                 else:
                     flash('用户名或密码错误', 'error')
             else:
-                flash('用户名或密码错误，或您没有管理员权限', 'error')
+                flash('用户名或密码错误，或账户已被禁用', 'error')
         except Exception as e:
             print(f"登录验证失败: {e}")
             flash('登录失败，请重试', 'error')
@@ -120,9 +137,11 @@ def login():
 
 @app.route('/logout')
 def logout():
-    """管理员登出"""
+    """用户登出"""
     session.pop('admin_user_id', None)
     session.pop('admin_username', None)
+    session.pop('user_role_id', None)
+    session.pop('is_admin', None)
     flash('已退出登录', 'info')
     return redirect(url_for('login'))
 

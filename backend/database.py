@@ -98,17 +98,31 @@ def init_database():
         )
     ''')
     
+    # 创建角色表
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS roles (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT NOT NULL UNIQUE,
+            description TEXT,
+            permissions TEXT DEFAULT '{}',
+            created_time DATETIME DEFAULT (datetime('now', 'localtime')),
+            is_active BOOLEAN DEFAULT 1
+        )
+    ''')
+    
     # 创建用户表
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS users (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             username TEXT NOT NULL UNIQUE,
             password_hash TEXT NOT NULL,
+            role_id INTEGER,
             is_admin BOOLEAN DEFAULT 0,
             permissions TEXT DEFAULT '{}',
             created_time DATETIME DEFAULT (datetime('now', 'localtime')),
             last_login DATETIME,
-            is_active BOOLEAN DEFAULT 1
+            is_active BOOLEAN DEFAULT 1,
+            FOREIGN KEY (role_id) REFERENCES roles (id)
         )
     ''')
     
@@ -166,6 +180,93 @@ def init_default_data(cursor):
             INSERT OR IGNORE INTO product_categories (name, is_default, sort_order)
             VALUES (?, ?, ?)
         ''', (name, is_default, sort_order))
+    
+    # 创建默认角色
+    import json
+    
+    # 管理员角色 - 拥有所有权限
+    admin_permissions = {
+        'menus': {
+            'patterns': True,
+            'products': True,
+            'categories': True,
+            'access_codes': True,
+            'access_logs': True,
+            'users': True,
+            'roles': True,
+            'theme_backgrounds': True,
+            'product_archives': True,
+            'settings': True
+        },
+        'actions': {
+            'create': True,
+            'edit': True,
+            'delete': True,
+            'export': True,
+            'import': True
+        }
+    }
+    
+    cursor.execute('''
+        INSERT OR IGNORE INTO roles (name, description, permissions)
+        VALUES (?, ?, ?)
+    ''', ('管理员', '系统管理员，拥有所有权限', json.dumps(admin_permissions, ensure_ascii=False)))
+    
+    # 操作员角色 - 基础操作权限
+    operator_permissions = {
+        'menus': {
+            'patterns': True,
+            'products': True,
+            'categories': True,
+            'access_codes': False,
+            'access_logs': True,
+            'users': False,
+            'roles': False,
+            'theme_backgrounds': True,
+            'product_archives': True,
+            'settings': False
+        },
+        'actions': {
+            'create': True,
+            'edit': True,
+            'delete': False,
+            'export': True,
+            'import': False
+        }
+    }
+    
+    cursor.execute('''
+        INSERT OR IGNORE INTO roles (name, description, permissions)
+        VALUES (?, ?, ?)
+    ''', ('操作员', '普通操作员，拥有基础操作权限', json.dumps(operator_permissions, ensure_ascii=False)))
+    
+    # 查看员角色 - 只读权限
+    viewer_permissions = {
+        'menus': {
+            'patterns': True,
+            'products': True,
+            'categories': True,
+            'access_codes': False,
+            'access_logs': True,
+            'users': False,
+            'roles': False,
+            'theme_backgrounds': True,
+            'product_archives': True,
+            'settings': False
+        },
+        'actions': {
+            'create': False,
+            'edit': False,
+            'delete': False,
+            'export': True,
+            'import': False
+        }
+    }
+    
+    cursor.execute('''
+        INSERT OR IGNORE INTO roles (name, description, permissions)
+        VALUES (?, ?, ?)
+    ''', ('查看员', '只读用户，只能查看数据', json.dumps(viewer_permissions, ensure_ascii=False)))
 
 class DatabaseManager:
     """数据库管理类"""
@@ -485,6 +586,83 @@ class DatabaseManager:
         """更新用户最后登录时间"""
         query = "UPDATE users SET last_login = datetime('now', 'localtime') WHERE username = ?"
         return DatabaseManager.execute_update(query, (username,))
+
+    # 角色相关操作
+    @staticmethod
+    def get_roles(active_only: bool = True) -> List[Dict[str, Any]]:
+        """获取角色列表"""
+        query = "SELECT * FROM roles"
+        if active_only:
+            query += " WHERE is_active = 1"
+        query += " ORDER BY created_time DESC"
+        return DatabaseManager.execute_query(query)
+    
+    @staticmethod
+    def get_role_by_id(role_id: int) -> Optional[Dict[str, Any]]:
+        """根据ID获取角色"""
+        query = "SELECT * FROM roles WHERE id = ? AND is_active = 1"
+        results = DatabaseManager.execute_query(query, (role_id,))
+        return results[0] if results else None
+    
+    @staticmethod
+    def add_role(name: str, description: str = "", permissions: str = "{}") -> int:
+        """添加角色"""
+        query = '''
+            INSERT INTO roles (name, description, permissions)
+            VALUES (?, ?, ?)
+        '''
+        return DatabaseManager.execute_insert(query, (name, description, permissions))
+    
+    @staticmethod
+    def update_role(role_id: int, name: str = None, description: str = None, permissions: str = None) -> int:
+        """更新角色"""
+        updates = []
+        params = []
+        
+        if name:
+            updates.append("name = ?")
+            params.append(name)
+        
+        if description is not None:
+            updates.append("description = ?")
+            params.append(description)
+        
+        if permissions is not None:
+            updates.append("permissions = ?")
+            params.append(permissions)
+        
+        if not updates:
+            return 0
+        
+        params.append(role_id)
+        query = f"UPDATE roles SET {', '.join(updates)} WHERE id = ?"
+        return DatabaseManager.execute_update(query, tuple(params))
+    
+    @staticmethod
+    def delete_role(role_id: int) -> int:
+        """删除角色（软删除）"""
+        query = "UPDATE roles SET is_active = 0 WHERE id = ?"
+        return DatabaseManager.execute_update(query, (role_id,))
+    
+    @staticmethod
+    def get_users_with_roles(active_only: bool = True) -> List[Dict[str, Any]]:
+        """获取用户列表（包含角色信息）"""
+        query = '''
+            SELECT u.id, u.username, u.is_admin, u.permissions, u.created_time, u.last_login, u.is_active,
+                   u.role_id, r.name as role_name, r.description as role_description
+            FROM users u
+            LEFT JOIN roles r ON u.role_id = r.id
+        '''
+        if active_only:
+            query += " WHERE u.is_active = 1"
+        query += " ORDER BY u.created_time DESC"
+        return DatabaseManager.execute_query(query)
+    
+    @staticmethod
+    def update_user_role(user_id: int, role_id: int = None) -> int:
+        """更新用户角色"""
+        query = "UPDATE users SET role_id = ? WHERE id = ?"
+        return DatabaseManager.execute_update(query, (role_id, user_id))
 
     # 主题背景图相关操作
     @staticmethod

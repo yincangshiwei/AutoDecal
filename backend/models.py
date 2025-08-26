@@ -57,11 +57,22 @@ class AccessCode:
     created_time: Optional[datetime] = None
 
 @dataclass
+class Role:
+    """角色模型"""
+    id: Optional[int] = None
+    name: str = ""
+    description: str = ""
+    permissions: str = ""  # JSON格式存储权限配置
+    created_time: Optional[datetime] = None
+    is_active: bool = True
+
+@dataclass
 class User:
     """用户模型"""
     id: Optional[int] = None
     username: str = ""
     password_hash: str = ""
+    role_id: Optional[int] = None
     is_admin: bool = False
     permissions: str = ""  # JSON格式存储权限配置
     created_time: Optional[datetime] = None

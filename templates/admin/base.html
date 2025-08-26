@@ -252,59 +252,83 @@
         
         <nav class="nav-menu">
             <div class="nav-item">
-                    <a href="{{ url_for('index') }}" class="nav-link {% if request.endpoint == 'index' %}active{% endif %}">
+                <a href="{{ url_for('index') }}" class="nav-link {% if request.endpoint == 'index' %}active{% endif %}">
                     <i class="fas fa-tachometer-alt"></i>
                     <span>仪表盘</span>
                 </a>
             </div>
+            {% if has_menu_permission('categories') %}
             <div class="nav-item">
                 <a href="{{ url_for('admin_categories.categories') }}" class="nav-link {% if request.endpoint == 'admin_categories.categories' %}active{% endif %}">
                     <i class="fas fa-folder"></i>
                     分类管理
                 </a>
             </div>
+            {% endif %}
+            {% if has_menu_permission('patterns') %}
             <div class="nav-item">
                 <a href="{{ url_for('admin_patterns.patterns') }}" class="nav-link {% if request.endpoint == 'admin_patterns.patterns' %}active{% endif %}">
                     <i class="fas fa-images"></i>
                     印花图案
                 </a>
             </div>
+            {% endif %}
+            {% if has_menu_permission('products') %}
             <div class="nav-item">
                 <a href="{{ url_for('admin_products.products') }}" class="nav-link {% if request.endpoint == 'admin_products.products' %}active{% endif %}">
                     <i class="fas fa-box"></i>
                     产品管理
                 </a>
             </div>
+            {% endif %}
+            {% if has_menu_permission('product_archives') %}
             <div class="nav-item">
                 <a href="{{ url_for('admin_product_archives.product_archives') }}" class="nav-link {% if request.endpoint == 'admin_product_archives.product_archives' %}active{% endif %}">
                     <i class="fas fa-archive"></i>
                     产品效果归档
                 </a>
             </div>
+            {% endif %}
+            {% if has_menu_permission('access_codes') %}
             <div class="nav-item">
                 <a href="{{ url_for('admin_access_codes.access_codes') }}" class="nav-link {% if request.endpoint == 'admin_access_codes.access_codes' %}active{% endif %}">
                     <i class="fas fa-key"></i>
                     <span>授权码管理</span>
                 </a>
             </div>
+            {% endif %}
+            {% if has_menu_permission('access_logs') %}
             <div class="nav-item">
                 <a href="{{ url_for('admin_access_logs.access_logs') }}" class="nav-link {% if request.endpoint == 'admin_access_logs.access_logs' %}active{% endif %}">
                     <i class="fas fa-history"></i>
                     访问记录管理
                 </a>
             </div>
+            {% endif %}
+            {% if has_menu_permission('theme_backgrounds') %}
             <div class="nav-item">
                 <a href="{{ url_for('admin_theme_backgrounds.theme_backgrounds') }}" class="nav-link {% if request.endpoint == 'admin_theme_backgrounds.theme_backgrounds' %}active{% endif %}">
                     <i class="fas fa-image"></i>
                     <span>主题背景图</span>
                 </a>
             </div>
+            {% endif %}
+            {% if has_menu_permission('users') %}
             <div class="nav-item">
                 <a href="{{ url_for('admin_users.users') }}" class="nav-link {% if request.endpoint == 'admin_users.users' %}active{% endif %}">
                     <i class="fas fa-users"></i>
                     用户管理
                 </a>
             </div>
+            {% endif %}
+            {% if has_menu_permission('roles') %}
+            <div class="nav-item">
+                <a href="{{ url_for('admin_roles.roles_list') }}" class="nav-link {% if request.endpoint == 'admin_roles.roles_list' %}active{% endif %}">
+                    <i class="fas fa-user-shield"></i>
+                    角色管理
+                </a>
+            </div>
+            {% endif %}
 
             <hr style="border-color: rgba(255,255,255,0.1); margin: 20px 15px;">
             

@@ -1,0 +1,344 @@
+{% extends "admin/base.html" %}
+
+{% block title %}角色管理{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h3 class="card-title">角色管理</h3>
+                    <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addRoleModal">
+                        <i class="fas fa-plus"></i> 添加角色
+                    </button>
+                </div>
+                <div class="card-body">
+                    {% if roles %}
+                    <div class="table-responsive">
+                        <table class="table table-striped table-hover">
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>角色名称</th>
+                                    <th>描述</th>
+                                    <th>菜单权限</th>
+                                    <th>操作权限</th>
+                                    <th>创建时间</th>
+                                    <th>操作</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for role in roles %}
+                                <tr>
+                                    <td>{{ role.id }}</td>
+                                    <td>{{ role.name }}</td>
+                                    <td>{{ role.description or '-' }}</td>
+                                    <td>
+                                        {% set permissions = role.permissions | from_json if role.permissions else {} %}
+                                        {% set menus = permissions.get('menus', {}) %}
+                                        <div class="d-flex flex-wrap gap-1">
+                                            {% if menus.get('patterns') %}<span class="badge bg-info">图案管理</span>{% endif %}
+                                            {% if menus.get('products') %}<span class="badge bg-info">产品管理</span>{% endif %}
+                                            {% if menus.get('categories') %}<span class="badge bg-info">分类管理</span>{% endif %}
+                                            {% if menus.get('access_codes') %}<span class="badge bg-info">授权码</span>{% endif %}
+                                            {% if menus.get('access_logs') %}<span class="badge bg-info">访问记录</span>{% endif %}
+                                            {% if menus.get('users') %}<span class="badge bg-info">用户管理</span>{% endif %}
+                                            {% if menus.get('roles') %}<span class="badge bg-info">角色管理</span>{% endif %}
+                                            {% if menus.get('theme_backgrounds') %}<span class="badge bg-info">主题背景</span>{% endif %}
+                                            {% if menus.get('product_archives') %}<span class="badge bg-info">产品归档</span>{% endif %}
+                                            {% if menus.get('settings') %}<span class="badge bg-info">系统设置</span>{% endif %}
+                                        </div>
+                                    </td>
+                                    <td>
+                                        {% set actions = permissions.get('actions', {}) %}
+                                        <div class="d-flex flex-wrap gap-1">
+                                            {% if actions.get('create') %}<span class="badge bg-success">创建</span>{% endif %}
+                                            {% if actions.get('edit') %}<span class="badge bg-warning">编辑</span>{% endif %}
+                                            {% if actions.get('delete') %}<span class="badge bg-danger">删除</span>{% endif %}
+                                            {% if actions.get('export') %}<span class="badge bg-secondary">导出</span>{% endif %}
+                                            {% if actions.get('import') %}<span class="badge bg-secondary">导入</span>{% endif %}
+                                        </div>
+                                    </td>
+                                    <td>{{ role.created_time }}</td>
+                                    <td>
+                                        <button type="button" class="btn btn-sm btn-outline-primary" 
+                                                onclick="editRole({{ role.id }})" title="编辑">
+                                            <i class="fas fa-edit"></i>
+                                        </button>
+                                        <button type="button" class="btn btn-sm btn-outline-danger" 
+                                                onclick="deleteRole({{ role.id }}, '{{ role.name }}')" title="删除">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="text-center py-4">
+                        <i class="fas fa-users-cog fa-3x text-muted mb-3"></i>
+                        <p class="text-muted">暂无角色数据</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 添加角色模态框 -->
+<div class="modal fade" id="addRoleModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <form method="POST" action="{{ url_for('admin_roles.add_role') }}">
+                <div class="modal-header">
+                    <h5 class="modal-title">添加角色</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="addRoleName" class="form-label">角色名称 <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" id="addRoleName" name="name" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="addRoleDescription" class="form-label">描述</label>
+                        <textarea class="form-control" id="addRoleDescription" name="description" rows="3"></textarea>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6>菜单权限</h6>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" name="menu_permissions" value="patterns" id="addMenuPatterns">
+                                <label class="form-check-label" for="addMenuPatterns">图案管理</label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" name="menu_permissions" value="products" id="addMenuProducts">
+                                <label class="form-check-label" for="addMenuProducts">产品管理</label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" name="menu_permissions" value="categories" id="addMenuCategories">
+                                <label class="form-check-label" for="addMenuCategories">分类管理</label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" name="menu_permissions" value="access_codes" id="addMenuAccessCodes">
+                                <label class="form-check-label" for="addMenuAccessCodes">授权码管理</label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" name="menu_permissions" value="access_logs" id="addMenuAccessLogs">
+                                <label class="form-check-label" for="addMenuAccessLogs">访问记录</label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" name="menu_permissions" value="users" id="addMenuUsers">
+                                <label class="form-check-label" for="addMenuUsers">用户管理</label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" name="menu_permissions" value="roles" id="addMenuRoles">
+                                <label class="form-check-label" for="addMenuRoles">角色管理</label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" name="menu_permissions" value="theme_backgrounds" id="addMenuThemes">
+                                <label class="form-check-label" for="addMenuThemes">主题背景</label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" name="menu_permissions" value="product_archives" id="addMenuArchives">
+                                <label class="form-check-label" for="addMenuArchives">产品归档</label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" name="menu_permissions" value="settings" id="addMenuSettings">
+                                <label class="form-check-label" for="addMenuSettings">系统设置</label>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <h6>操作权限</h6>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" name="action_permissions" value="create" id="addActionCreate">
+                                <label class="form-check-label" for="addActionCreate">创建</label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" name="action_permissions" value="edit" id="addActionEdit">
+                                <label class="form-check-label" for="addActionEdit">编辑</label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" name="action_permissions" value="delete" id="addActionDelete">
+                                <label class="form-check-label" for="addActionDelete">删除</label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" name="action_permissions" value="export" id="addActionExport">
+                                <label class="form-check-label" for="addActionExport">导出</label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" name="action_permissions" value="import" id="addActionImport">
+                                <label class="form-check-label" for="addActionImport">导入</label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                    <button type="submit" class="btn btn-primary">添加</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- 编辑角色模态框 -->
+<div class="modal fade" id="editRoleModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <form method="POST" id="editRoleForm">
+                <div class="modal-header">
+                    <h5 class="modal-title">编辑角色</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="editRoleName" class="form-label">角色名称 <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" id="editRoleName" name="name" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="editRoleDescription" class="form-label">描述</label>
+                        <textarea class="form-control" id="editRoleDescription" name="description" rows="3"></textarea>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6>菜单权限</h6>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" name="menu_permissions" value="patterns" id="editMenuPatterns">
+                                <label class="form-check-label" for="editMenuPatterns">图案管理</label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" name="menu_permissions" value="products" id="editMenuProducts">
+                                <label class="form-check-label" for="editMenuProducts">产品管理</label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" name="menu_permissions" value="categories" id="editMenuCategories">
+                                <label class="form-check-label" for="editMenuCategories">分类管理</label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" name="menu_permissions" value="access_codes" id="editMenuAccessCodes">
+                                <label class="form-check-label" for="editMenuAccessCodes">授权码管理</label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" name="menu_permissions" value="access_logs" id="editMenuAccessLogs">
+                                <label class="form-check-label" for="editMenuAccessLogs">访问记录</label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" name="menu_permissions" value="users" id="editMenuUsers">
+                                <label class="form-check-label" for="editMenuUsers">用户管理</label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" name="menu_permissions" value="roles" id="editMenuRoles">
+                                <label class="form-check-label" for="editMenuRoles">角色管理</label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" name="menu_permissions" value="theme_backgrounds" id="editMenuThemes">
+                                <label class="form-check-label" for="editMenuThemes">主题背景</label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" name="menu_permissions" value="product_archives" id="editMenuArchives">
+                                <label class="form-check-label" for="editMenuArchives">产品归档</label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" name="menu_permissions" value="settings" id="editMenuSettings">
+                                <label class="form-check-label" for="editMenuSettings">系统设置</label>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <h6>操作权限</h6>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" name="action_permissions" value="create" id="editActionCreate">
+                                <label class="form-check-label" for="editActionCreate">创建</label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" name="action_permissions" value="edit" id="editActionEdit">
+                                <label class="form-check-label" for="editActionEdit">编辑</label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" name="action_permissions" value="delete" id="editActionDelete">
+                                <label class="form-check-label" for="editActionDelete">删除</label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" name="action_permissions" value="export" id="editActionExport">
+                                <label class="form-check-label" for="editActionExport">导出</label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" name="action_permissions" value="import" id="editActionImport">
+                                <label class="form-check-label" for="editActionImport">导入</label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                    <button type="submit" class="btn btn-primary">保存</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+function editRole(roleId) {
+    fetch(`{{ url_for('admin_roles.get_role', role_id=0) }}`.replace('0', roleId))
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                const role = data.role;
+                const permissions = role.permissions_parsed || {};
+                const menus = permissions.menus || {};
+                const actions = permissions.actions || {};
+                
+                // 填充表单
+                document.getElementById('editRoleName').value = role.name;
+                document.getElementById('editRoleDescription').value = role.description || '';
+                
+                // 设置菜单权限
+                document.getElementById('editMenuPatterns').checked = menus.patterns || false;
+                document.getElementById('editMenuProducts').checked = menus.products || false;
+                document.getElementById('editMenuCategories').checked = menus.categories || false;
+                document.getElementById('editMenuAccessCodes').checked = menus.access_codes || false;
+                document.getElementById('editMenuAccessLogs').checked = menus.access_logs || false;
+                document.getElementById('editMenuUsers').checked = menus.users || false;
+                document.getElementById('editMenuRoles').checked = menus.roles || false;
+                document.getElementById('editMenuThemes').checked = menus.theme_backgrounds || false;
+                document.getElementById('editMenuArchives').checked = menus.product_archives || false;
+                document.getElementById('editMenuSettings').checked = menus.settings || false;
+                
+                // 设置操作权限
+                document.getElementById('editActionCreate').checked = actions.create || false;
+                document.getElementById('editActionEdit').checked = actions.edit || false;
+                document.getElementById('editActionDelete').checked = actions.delete || false;
+                document.getElementById('editActionExport').checked = actions.export || false;
+                document.getElementById('editActionImport').checked = actions.import || false;
+                
+                // 设置表单action
+                document.getElementById('editRoleForm').action = `{{ url_for('admin_roles.edit_role', role_id=0) }}`.replace('0', roleId);
+                
+                // 显示模态框
+                new bootstrap.Modal(document.getElementById('editRoleModal')).show();
+            } else {
+                alert('获取角色信息失败: ' + data.message);
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('获取角色信息失败');
+        });
+}
+
+function deleteRole(roleId, roleName) {
+    if (confirm(`确定要删除角色 "${roleName}" 吗？此操作不可恢复。`)) {
+        const form = document.createElement('form');
+        form.method = 'POST';
+        form.action = `{{ url_for('admin_roles.delete_role', role_id=0) }}`.replace('0', roleId);
+        document.body.appendChild(form);
+        form.submit();
+    }
+}
+</script>
+{% endblock %}

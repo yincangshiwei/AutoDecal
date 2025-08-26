@@ -16,16 +16,20 @@
 <!-- 操作按钮 -->
 <div class="row mb-4">
     <div class="col-md-6">
+        {% if has_action_permission('create') %}
         <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addUserModal">
             <i class="fas fa-plus me-2"></i>添加用户
         </button>
+        {% endif %}
     </div>
     <div class="col-md-6">
         <div class="input-group">
             <select class="form-select" id="roleFilter">
                 <option value="">所有角色</option>
-                <option value="admin">管理员</option>
-                <option value="user">普通用户</option>
+                {% for role in roles %}
+                <option value="{{ role.name }}">{{ role.name }}</option>
+                {% endfor %}
+                <option value="无角色">无角色</option>
             </select>
             <input type="text" class="form-control" id="searchInput" placeholder="搜索用户名或邮箱...">
             <button class="btn btn-outline-secondary" type="button">
@@ -57,7 +61,7 @@
                 </thead>
                 <tbody id="usersTable">
                     {% for user in users %}
-                    <tr class="user-item" data-username="{{ user.username|lower }}" data-role="{{ 'admin' if user.is_admin else 'user' }}">
+                    <tr class="user-item" data-username="{{ user.username|lower }}" data-role="{{ user.role_name or '无角色' }}">
                         <td>{{ user.id }}</td>
                         <td>
                             <div class="d-flex align-items-center">
@@ -68,10 +72,12 @@
                             </div>
                         </td>
                         <td>
-                            {% if user.is_admin %}
+                            {% if user.role_name %}
+                                <span class="badge bg-info">{{ user.role_name }}</span>
+                            {% elif user.is_admin %}
                                 <span class="badge bg-danger">管理员</span>
                             {% else %}
-                                <span class="badge bg-primary">普通用户</span>
+                                <span class="badge bg-secondary">无角色</span>
                             {% endif %}
                         </td>
                         <td>
@@ -90,20 +96,26 @@
                         </td>
                         <td>{{ user.created_time[:16] if user.created_time else '未知' }}</td>
                         <td>
-                            <button class="btn btn-sm btn-outline-primary" onclick="editUser({{ user.id }})">
+                            {% if has_action_permission('edit') %}
+                            <button class="btn btn-sm btn-outline-primary" onclick="editUser({{ user.id }})" title="编辑">
                                 <i class="fas fa-edit"></i>
                             </button>
-                            <button class="btn btn-sm btn-outline-danger ms-1" onclick="deleteUser({{ user.id }})">
+                            {% endif %}
+                            {% if has_action_permission('delete') %}
+                            <button class="btn btn-sm btn-outline-danger ms-1" onclick="deleteUser({{ user.id }})" title="删除">
                                 <i class="fas fa-trash"></i>
                             </button>
-                            {% if user.is_active %}
-                            <button class="btn btn-sm btn-outline-warning ms-1" onclick="toggleUserStatus({{ user.id }}, false)">
-                                <i class="fas fa-ban"></i>
-                            </button>
-                            {% else %}
-                            <button class="btn btn-sm btn-outline-success ms-1" onclick="toggleUserStatus({{ user.id }}, true)">
-                                <i class="fas fa-check"></i>
-                            </button>
+                            {% endif %}
+                            {% if has_action_permission('edit') %}
+                                {% if user.is_active %}
+                                <button class="btn btn-sm btn-outline-warning ms-1" onclick="toggleUserStatus({{ user.id }}, false)" title="禁用">
+                                    <i class="fas fa-ban"></i>
+                                </button>
+                                {% else %}
+                                <button class="btn btn-sm btn-outline-success ms-1" onclick="toggleUserStatus({{ user.id }}, true)" title="启用">
+                                    <i class="fas fa-check"></i>
+                                </button>
+                                {% endif %}
                             {% endif %}
                         </td>
                     </tr>
@@ -141,11 +153,12 @@
                         <div class="form-text">密码长度至少6位</div>
                     </div>
                     <div class="mb-3">
-                        <label for="role" class="form-label">角色 <span class="text-danger">*</span></label>
-                        <select class="form-select" id="role" name="role" required>
+                        <label for="role_id" class="form-label">角色 <span class="text-danger">*</span></label>
+                        <select class="form-select" id="role_id" name="role_id" required>
                             <option value="">请选择角色</option>
-                            <option value="user">普通用户</option>
-                            <option value="admin">管理员</option>
+                            {% for role in roles %}
+                            <option value="{{ role.id }}">{{ role.name }}</option>
+                            {% endfor %}
                         </select>
                     </div>
                 </div>
@@ -181,10 +194,12 @@
                         <div class="form-text">留空表示不修改密码</div>
                     </div>
                     <div class="mb-3">
-                        <label for="editRole" class="form-label">角色 <span class="text-danger">*</span></label>
-                        <select class="form-select" id="editRole" name="role" required>
-                            <option value="user">普通用户</option>
-                            <option value="admin">管理员</option>
+                        <label for="editRoleId" class="form-label">角色 <span class="text-danger">*</span></label>
+                        <select class="form-select" id="editRoleId" name="role_id" required>
+                            <option value="">请选择角色</option>
+                            {% for role in roles %}
+                            <option value="{{ role.id }}">{{ role.name }}</option>
+                            {% endfor %}
                         </select>
                     </div>
                     <div class="mb-3">
@@ -262,10 +277,9 @@ function filterUsers() {
     
     userItems.forEach(item => {
         const username = item.getAttribute('data-username');
-        const email = item.getAttribute('data-email');
         const role = item.getAttribute('data-role');
         
-        const matchesSearch = username.includes(searchTerm) || email.includes(searchTerm);
+        const matchesSearch = username.includes(searchTerm);
         const matchesRole = !roleFilter || role === roleFilter;
         
         if (matchesSearch && matchesRole) {
@@ -314,8 +328,31 @@ function editUser(id) {
                 const user = data.data;
                 document.getElementById('editUserId').value = user.id;
                 document.getElementById('editUsername').value = user.username;
-                document.getElementById('editRole').value = user.is_admin ? 'admin' : 'user';
+                document.getElementById('editRoleId').value = user.role_id || '';
                 document.getElementById('editIsActive').checked = user.is_active;
+                
+                // 如果是admin用户，禁用用户名和状态修改
+                if (user.username === 'admin') {
+                    document.getElementById('editUsername').disabled = true;
+                    document.getElementById('editIsActive').disabled = true;
+                    // 显示提示信息
+                    const modal = document.getElementById('editUserModal');
+                    const existingAlert = modal.querySelector('.admin-warning');
+                    if (!existingAlert) {
+                        const alertDiv = document.createElement('div');
+                        alertDiv.className = 'alert alert-warning admin-warning';
+                        alertDiv.innerHTML = '<i class="fas fa-exclamation-triangle"></i> admin是超级管理员，用户名和状态不能修改';
+                        modal.querySelector('.modal-body').insertBefore(alertDiv, modal.querySelector('.modal-body').firstChild);
+                    }
+                } else {
+                    document.getElementById('editUsername').disabled = false;
+                    document.getElementById('editIsActive').disabled = false;
+                    // 移除警告信息
+                    const existingAlert = document.getElementById('editUserModal').querySelector('.admin-warning');
+                    if (existingAlert) {
+                        existingAlert.remove();
+                    }
+                }
                 
                 new bootstrap.Modal(document.getElementById('editUserModal')).show();
             }
@@ -354,47 +391,73 @@ document.getElementById('editUserForm').addEventListener('submit', async functio
 
 // 删除用户
 function deleteUser(id) {
-    if (confirm('确定要删除这个用户吗？此操作不可恢复。')) {
-        fetch('{{ url_for("admin_users.delete_user") }}', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({id: id})
-        })
+    // 先获取用户信息检查是否为admin
+    fetch(`{{ url_for("admin_users.get_user") }}?id=${id}`)
         .then(response => response.json())
-        .then(result => {
-            if (result.success) {
-                showAlert('success', result.message);
-                setTimeout(() => location.reload(), 1500);
-            } else {
-                showAlert('danger', result.message);
+        .then(data => {
+            if (data.success) {
+                const user = data.data;
+                if (user.username === 'admin') {
+                    showAlert('danger', 'admin用户不能删除');
+                    return;
+                }
+                
+                if (confirm('确定要删除这个用户吗？此操作不可恢复。')) {
+                    fetch('{{ url_for("admin_users.delete_user") }}', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({id: id})
+                    })
+                    .then(response => response.json())
+                    .then(result => {
+                        if (result.success) {
+                            showAlert('success', result.message);
+                            setTimeout(() => location.reload(), 1500);
+                        } else {
+                            showAlert('danger', result.message);
+                        }
+                    });
+                }
             }
         });
-    }
 }
 
 // 切换用户状态
 function toggleUserStatus(id, isActive) {
-    const action = isActive ? '启用' : '禁用';
-    if (confirm(`确定要${action}这个用户吗？`)) {
-        fetch('{{ url_for("admin_users.toggle_user_status") }}', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({id: id, is_active: isActive})
-        })
+    // 先获取用户信息检查是否为admin
+    fetch(`{{ url_for("admin_users.get_user") }}?id=${id}`)
         .then(response => response.json())
-        .then(result => {
-            if (result.success) {
-                showAlert('success', result.message);
-                setTimeout(() => location.reload(), 1500);
-            } else {
-                showAlert('danger', result.message);
+        .then(data => {
+            if (data.success) {
+                const user = data.data;
+                if (user.username === 'admin' && !isActive) {
+                    showAlert('danger', 'admin用户不能禁用');
+                    return;
+                }
+                
+                const action = isActive ? '启用' : '禁用';
+                if (confirm(`确定要${action}这个用户吗？`)) {
+                    fetch('{{ url_for("admin_users.toggle_user_status") }}', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({id: id, is_active: isActive})
+                    })
+                    .then(response => response.json())
+                    .then(result => {
+                        if (result.success) {
+                            showAlert('success', result.message);
+                            setTimeout(() => location.reload(), 1500);
+                        } else {
+                            showAlert('danger', result.message);
+                        }
+                    });
+                }
             }
         });
-    }
 }
 
 // 显示提示信息
