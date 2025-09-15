@@ -220,6 +220,17 @@
             <form id="batchUploadForm" enctype="multipart/form-data">
                 <div class="modal-body">
                     <div class="mb-3">
+                        <label for="batchPatternCategory" class="form-label">印花分类 <span class="text-danger">*</span></label>
+                        <select class="form-select" id="batchPatternCategory" name="category_id" required>
+                            {% for category in categories %}
+                            <option value="{{ category.id }}" {% if category.id == 1 %}selected{% endif %}>
+                                {{ category.name }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                        <div class="form-text">所有上传的图案都将归类到选定的分类中</div>
+                    </div>
+                    <div class="mb-3">
                         <label for="batchFiles" class="form-label">选择图片文件 <span class="text-danger">*</span></label>
                         <input type="file" class="form-control" id="batchFiles" name="files" 
                                accept="image/*" multiple required onchange="previewBatchImages(this)">
@@ -648,6 +659,10 @@ document.getElementById('batchUploadForm').addEventListener('submit', async func
         showAlert('warning', '请处理所有重名冲突后再上传');
         return;
     }
+    
+    // 添加分类ID到FormData
+    const categoryId = document.getElementById('batchPatternCategory').value;
+    formData.append('category_id', categoryId);
     
     // 添加所有文件到FormData
     for (let i = 0; i < files.length; i++) {

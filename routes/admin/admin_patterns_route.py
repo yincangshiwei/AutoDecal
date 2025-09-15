@@ -102,6 +102,9 @@ def batch_upload_patterns():
         if not files or all(f.filename == '' for f in files):
             return jsonify({'success': False, 'message': '请选择图片文件'})
         
+        # 获取分类ID
+        category_id = request.form.get('category_id', type=int) or 1
+        
         results = []
         success_count = 0
         error_count = 0
@@ -142,13 +145,13 @@ def batch_upload_patterns():
                 
                 file_size = os.path.getsize(file_path)
                 
-                # 创建图案记录（默认分类ID为1）
+                # 创建图案记录（使用指定的分类ID）
                 query = '''
                     INSERT INTO patterns (name, filename, file_path, category_id, file_size, image_width, image_height, upload_time)
                     VALUES (?, ?, ?, ?, ?, ?, ?, ?)
                 '''
                 pattern_id = DatabaseManager.execute_insert(query, (
-                    pattern_name, filename, file_path, 1, file_size, width, height, datetime.now()
+                    pattern_name, filename, file_path, category_id, file_size, width, height, datetime.now()
                 ))
                 
                 results.append({
