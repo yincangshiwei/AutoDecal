@@ -27,11 +27,25 @@
         </button>
     </div>
     <div class="col-md-6">
-        <div class="input-group">
-            <input type="text" class="form-control" id="searchInput" placeholder="搜索图案名称...">
-            <button class="btn btn-outline-secondary" type="button">
-                <i class="fas fa-search"></i>
-            </button>
+        <div class="row">
+            <div class="col-md-6">
+                <select class="form-select" id="categoryFilter" onchange="filterByCategory()">
+                    <option value="">所有分类</option>
+                    {% for category in categories %}
+                    <option value="{{ category.id }}" {% if request.args.get('category_id')|int == category.id %}selected{% endif %}>
+                        {{ category.name }} ({{ category.pattern_count or 0 }})
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-6">
+                <div class="input-group">
+                    <input type="text" class="form-control" id="searchInput" placeholder="搜索图案名称...">
+                    <button class="btn btn-outline-secondary" type="button">
+                        <i class="fas fa-search"></i>
+                    </button>
+                </div>
+            </div>
         </div>
     </div>
 </div>
@@ -63,6 +77,10 @@
                     <div class="card-body">
                         <h6 class="card-title">{{ pattern.name }}</h6>
                         <div class="pattern-info">
+                            <small class="text-muted">
+                                <i class="fas fa-tag me-1"></i>{{ pattern.category_name or '默认分类' }}
+                            </small>
+                            <br>
                             <small class="text-muted">
                                 <i class="fas fa-ruler-combined me-1"></i>{{ pattern.image_width }}×{{ pattern.image_height }}
                             </small>
@@ -105,6 +123,16 @@
                         <input type="text" class="form-control" id="patternName" name="name" required>
                     </div>
                     <div class="mb-3">
+                        <label for="patternCategory" class="form-label">印花分类 <span class="text-danger">*</span></label>
+                        <select class="form-select" id="patternCategory" name="category_id" required>
+                            {% for category in categories %}
+                            <option value="{{ category.id }}" {% if category.id == 1 %}selected{% endif %}>
+                                {{ category.name }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="mb-3">
                         <label for="patternFile" class="form-label">图案文件 <span class="text-danger">*</span></label>
                         <input type="file" class="form-control" id="patternFile" name="file" 
                                accept="image/*" required onchange="previewImage(this)">
@@ -142,6 +170,14 @@
                     <div class="mb-3">
                         <label for="editPatternName" class="form-label">图案名称 <span class="text-danger">*</span></label>
                         <input type="text" class="form-control" id="editPatternName" name="name" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="editPatternCategory" class="form-label">印花分类 <span class="text-danger">*</span></label>
+                        <select class="form-select" id="editPatternCategory" name="category_id" required>
+                            {% for category in categories %}
+                            <option value="{{ category.id }}">{{ category.name }}</option>
+                            {% endfor %}
+                        </select>
                     </div>
                     <div class="mb-3">
                         <label class="form-label">当前图片</label>
@@ -714,6 +750,18 @@ function displayUploadResults(result) {
     }
 }
 
+// 分类筛选
+function filterByCategory() {
+    const categoryId = document.getElementById('categoryFilter').value;
+    const url = new URL(window.location);
+    if (categoryId) {
+        url.searchParams.set('category_id', categoryId);
+    } else {
+        url.searchParams.delete('category_id');
+    }
+    window.location.href = url.toString();
+}
+
 // 编辑图案
 function editPattern(id) {
     fetch(`{{ url_for("admin_patterns.get_pattern") }}?id=${id}`)
@@ -723,6 +771,7 @@ function editPattern(id) {
                 const pattern = data.data;
                 document.getElementById('editPatternId').value = pattern.id;
                 document.getElementById('editPatternName').value = pattern.name;
+                document.getElementById('editPatternCategory').value = pattern.category_id || 1;
                 document.getElementById('editPreviewImg').src = 
                     `{{ url_for('uploaded_file', filename='patterns/') }}${pattern.filename}`;
                 

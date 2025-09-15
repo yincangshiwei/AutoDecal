@@ -28,11 +28,13 @@ def init_database():
             name TEXT NOT NULL,
             filename TEXT NOT NULL,
             file_path TEXT NOT NULL,
+            category_id INTEGER DEFAULT 1,
             upload_time DATETIME DEFAULT CURRENT_TIMESTAMP,
             file_size INTEGER DEFAULT 0,
             image_width INTEGER DEFAULT 0,
             image_height INTEGER DEFAULT 0,
-            is_active BOOLEAN DEFAULT 1
+            is_active BOOLEAN DEFAULT 1,
+            FOREIGN KEY (category_id) REFERENCES pattern_categories (id)
         )
     ''')
     
@@ -194,6 +196,30 @@ def init_default_data(cursor):
             VALUES (?, ?, ?)
         ''', (name, is_default, sort_order))
     
+    # 创建默认印花分类
+    default_pattern_categories = [
+        ('默认分类', '系统默认印花分类', 1),
+        ('节日主题', '节日相关的印花图案', 2),
+        ('自然风光', '自然风景类印花图案', 3),
+        ('抽象艺术', '抽象艺术类印花图案', 4)
+    ]
+    
+    for name, description, sort_order in default_pattern_categories:
+        cursor.execute('''
+            INSERT OR IGNORE INTO pattern_categories (name, description, sort_order)
+            VALUES (?, ?, ?)
+        ''', (name, description, sort_order))
+    
+    # 为现有印花图案添加分类字段（如果不存在）
+    try:
+        cursor.execute("ALTER TABLE patterns ADD COLUMN category_id INTEGER DEFAULT 1")
+    except sqlite3.OperationalError:
+        # 字段已存在，忽略错误
+        pass
+    
+    # 将现有的印花图案关联到默认分类（ID为1）
+    cursor.execute("UPDATE patterns SET category_id = 1 WHERE category_id IS NULL OR category_id = 0")
+    
     # 创建默认角色
     import json
     
@@ -321,23 +347,38 @@ class DatabaseManager:
 
     # 印花图案相关操作
     @staticmethod
-    def get_patterns(active_only: bool = True) -> List[Dict[str, Any]]:
+    def get_patterns(category_id: Optional[int] = None, active_only: bool = True) -> List[Dict[str, Any]]:
         """获取印花图案列表"""
-        query = "SELECT * FROM patterns"
+        query = '''
+            SELECT p.*, pc.name as category_name 
+            FROM patterns p 
+            LEFT JOIN pattern_categories pc ON p.category_id = pc.id
+        '''
+        params = []
+        conditions = []
+        
         if active_only:
-            query += " WHERE is_active = 1"
-        query += " ORDER BY upload_time DESC"
-        return DatabaseManager.execute_query(query)
+            conditions.append("p.is_active = 1")
+        
+        if category_id:
+            conditions.append("p.category_id = ?")
+            params.append(category_id)
+        
+        if conditions:
+            query += " WHERE " + " AND ".join(conditions)
+        
+        query += " ORDER BY p.upload_time DESC"
+        return DatabaseManager.execute_query(query, tuple(params))
     
     @staticmethod
     def add_pattern(pattern: Pattern) -> int:
         """添加印花图案"""
         query = '''
-            INSERT INTO patterns (name, filename, file_path, file_size, image_width, image_height)
-            VALUES (?, ?, ?, ?, ?, ?)
+            INSERT INTO patterns (name, filename, file_path, category_id, file_size, image_width, image_height)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
         '''
         return DatabaseManager.execute_insert(query, (
-            pattern.name, pattern.filename, pattern.file_path,
+            pattern.name, pattern.filename, pattern.file_path, pattern.category_id or 1,
             pattern.file_size, pattern.image_width, pattern.image_height
         ))
     
@@ -346,12 +387,12 @@ class DatabaseManager:
         """更新印花图案"""
         query = '''
             UPDATE patterns 
-            SET name = ?, filename = ?, file_path = ?, file_size = ?, 
+            SET name = ?, filename = ?, file_path = ?, category_id = ?, file_size = ?, 
                 image_width = ?, image_height = ?
             WHERE id = ?
         '''
         return DatabaseManager.execute_update(query, (
-            pattern.name, pattern.filename, pattern.file_path,
+            pattern.name, pattern.filename, pattern.file_path, pattern.category_id or 1,
             pattern.file_size, pattern.image_width, pattern.image_height, pattern_id
         ))
     
@@ -397,11 +438,16 @@ class DatabaseManager:
     # 印花分类相关操作
     @staticmethod
     def get_pattern_categories(active_only: bool = True) -> List[Dict[str, Any]]:
-        """获取印花分类列表"""
-        query = "SELECT * FROM pattern_categories"
+        """获取印花分类列表（包含印花数量）"""
+        query = '''
+            SELECT pc.*, 
+                   COUNT(p.id) as pattern_count
+            FROM pattern_categories pc
+            LEFT JOIN patterns p ON pc.id = p.category_id AND p.is_active = 1
+        '''
         if active_only:
-            query += " WHERE is_active = 1"
-        query += " ORDER BY sort_order, created_time"
+            query += " WHERE pc.is_active = 1"
+        query += " GROUP BY pc.id ORDER BY pc.sort_order, pc.created_time"
         return DatabaseManager.execute_query(query)
     
     @staticmethod
@@ -434,6 +480,12 @@ class DatabaseManager:
     @staticmethod
     def delete_pattern_category(category_id: int) -> int:
         """删除印花分类（软删除）"""
+        # 先将该分类下的印花图案移动到默认分类
+        DatabaseManager.execute_update(
+            "UPDATE patterns SET category_id = 1 WHERE category_id = ?", 
+            (category_id,)
+        )
+        # 然后软删除分类
         query = "UPDATE pattern_categories SET is_active = 0 WHERE id = ?"
         return DatabaseManager.execute_update(query, (category_id,))
     

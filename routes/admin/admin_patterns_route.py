@@ -21,11 +21,15 @@ def login_required(f):
 def patterns():
     """印花图案管理页面"""
     try:
-        patterns = DatabaseManager.get_patterns() or []
+        # 获取分类筛选参数
+        category_id = request.args.get('category_id', type=int)
+        patterns = DatabaseManager.get_patterns(category_id=category_id) or []
+        categories = DatabaseManager.get_pattern_categories() or []
     except Exception as e:
         print(f"获取印花图案失败: {e}")
         patterns = []
-    return render_template('admin/patterns.html', patterns=patterns)
+        categories = []
+    return render_template('admin/patterns.html', patterns=patterns, categories=categories)
 
 @patterns_bp.route('/add', methods=['POST'])
 @login_required
@@ -33,6 +37,8 @@ def add_pattern():
     """添加印花图案"""
     try:
         name = request.form.get('name')
+        category_id = request.form.get('category_id', type=int) or 1
+        
         if not name:
             return jsonify({'success': False, 'message': '请输入图案名称'})
         
@@ -68,11 +74,11 @@ def add_pattern():
         
         # 创建图案记录
         query = '''
-            INSERT INTO patterns (name, filename, file_path, file_size, image_width, image_height, upload_time)
-            VALUES (?, ?, ?, ?, ?, ?, ?)
+            INSERT INTO patterns (name, filename, file_path, category_id, file_size, image_width, image_height, upload_time)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
         '''
         pattern_id = DatabaseManager.execute_insert(query, (
-            name, filename, file_path, file_size, width, height, datetime.now()
+            name, filename, file_path, category_id, file_size, width, height, datetime.now()
         ))
         
         return jsonify({
@@ -136,13 +142,13 @@ def batch_upload_patterns():
                 
                 file_size = os.path.getsize(file_path)
                 
-                # 创建图案记录
+                # 创建图案记录（默认分类ID为1）
                 query = '''
-                    INSERT INTO patterns (name, filename, file_path, file_size, image_width, image_height, upload_time)
-                    VALUES (?, ?, ?, ?, ?, ?, ?)
+                    INSERT INTO patterns (name, filename, file_path, category_id, file_size, image_width, image_height, upload_time)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
                 '''
                 pattern_id = DatabaseManager.execute_insert(query, (
-                    pattern_name, filename, file_path, file_size, width, height, datetime.now()
+                    pattern_name, filename, file_path, 1, file_size, width, height, datetime.now()
                 ))
                 
                 results.append({
@@ -211,13 +217,14 @@ def update_pattern():
     try:
         pattern_id = request.form.get('id', type=int)
         name = request.form.get('name')
+        category_id = request.form.get('category_id', type=int) or 1
         
         if not pattern_id or not name:
             return jsonify({'success': False, 'message': '缺少必要参数'})
         
         # 构建更新字段和参数
-        update_fields = ["name = ?"]
-        params = [name]
+        update_fields = ["name = ?", "category_id = ?"]
+        params = [name, category_id]
         
         # 处理文件上传
         if 'file' in request.files and request.files['file'].filename != '':

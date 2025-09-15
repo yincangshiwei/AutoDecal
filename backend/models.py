@@ -13,6 +13,7 @@ class Pattern:
     name: str = ""
     filename: str = ""
     file_path: str = ""
+    category_id: int = 1
     upload_time: Optional[datetime] = None
     file_size: int = 0
     image_width: int = 0
