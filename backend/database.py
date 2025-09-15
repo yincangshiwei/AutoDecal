@@ -411,11 +411,16 @@ class DatabaseManager:
     # 产品分类相关操作
     @staticmethod
     def get_categories(active_only: bool = True) -> List[Dict[str, Any]]:
-        """获取产品分类列表"""
-        query = "SELECT * FROM product_categories"
+        """获取产品分类列表（包含产品数量）"""
+        query = '''
+            SELECT pc.*, 
+                   COUNT(p.id) as product_count
+            FROM product_categories pc
+            LEFT JOIN products p ON pc.id = p.category_id AND p.is_active = 1
+        '''
         if active_only:
-            query += " WHERE is_active = 1"
-        query += " ORDER BY sort_order, created_time"
+            query += " WHERE pc.is_active = 1"
+        query += " GROUP BY pc.id ORDER BY pc.sort_order, pc.created_time"
         return DatabaseManager.execute_query(query)
     
     @staticmethod
