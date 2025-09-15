@@ -41,7 +41,20 @@ def init_database():
         CREATE TABLE IF NOT EXISTS product_categories (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             name TEXT NOT NULL UNIQUE,
+            description TEXT,
             is_default BOOLEAN DEFAULT 0,
+            sort_order INTEGER DEFAULT 0,
+            is_active BOOLEAN DEFAULT 1,
+            created_time DATETIME DEFAULT (datetime('now', 'localtime'))
+        )
+    ''')
+    
+    # 创建印花分类表
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS pattern_categories (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT NOT NULL UNIQUE,
+            description TEXT,
             sort_order INTEGER DEFAULT 0,
             is_active BOOLEAN DEFAULT 1,
             created_time DATETIME DEFAULT (datetime('now', 'localtime'))
@@ -190,6 +203,7 @@ def init_default_data(cursor):
             'patterns': True,
             'products': True,
             'categories': True,
+            'pattern_categories': True,
             'access_codes': True,
             'access_logs': True,
             'users': True,
@@ -218,6 +232,7 @@ def init_default_data(cursor):
             'patterns': True,
             'products': True,
             'categories': True,
+            'pattern_categories': True,
             'access_codes': False,
             'access_logs': True,
             'users': False,
@@ -246,6 +261,7 @@ def init_default_data(cursor):
             'patterns': True,
             'products': True,
             'categories': True,
+            'pattern_categories': True,
             'access_codes': False,
             'access_logs': True,
             'users': False,
@@ -377,6 +393,56 @@ class DatabaseManager:
         
         query = "INSERT INTO product_categories (name, is_default) VALUES (?, ?)"
         return DatabaseManager.execute_insert(query, (name, is_default))
+
+    # 印花分类相关操作
+    @staticmethod
+    def get_pattern_categories(active_only: bool = True) -> List[Dict[str, Any]]:
+        """获取印花分类列表"""
+        query = "SELECT * FROM pattern_categories"
+        if active_only:
+            query += " WHERE is_active = 1"
+        query += " ORDER BY sort_order, created_time"
+        return DatabaseManager.execute_query(query)
+    
+    @staticmethod
+    def add_pattern_category(name: str, description: str = "") -> int:
+        """添加印花分类"""
+        query = "INSERT INTO pattern_categories (name, description) VALUES (?, ?)"
+        return DatabaseManager.execute_insert(query, (name, description))
+    
+    @staticmethod
+    def update_pattern_category(category_id: int, name: str = None, description: str = None) -> int:
+        """更新印花分类"""
+        updates = []
+        params = []
+        
+        if name:
+            updates.append("name = ?")
+            params.append(name)
+        
+        if description is not None:
+            updates.append("description = ?")
+            params.append(description)
+        
+        if not updates:
+            return 0
+        
+        params.append(category_id)
+        query = f"UPDATE pattern_categories SET {', '.join(updates)} WHERE id = ?"
+        return DatabaseManager.execute_update(query, tuple(params))
+    
+    @staticmethod
+    def delete_pattern_category(category_id: int) -> int:
+        """删除印花分类（软删除）"""
+        query = "UPDATE pattern_categories SET is_active = 0 WHERE id = ?"
+        return DatabaseManager.execute_update(query, (category_id,))
+    
+    @staticmethod
+    def get_pattern_category_by_id(category_id: int) -> Optional[Dict[str, Any]]:
+        """根据ID获取印花分类"""
+        query = "SELECT * FROM pattern_categories WHERE id = ? AND is_active = 1"
+        results = DatabaseManager.execute_query(query, (category_id,))
+        return results[0] if results else None
 
     # 产品相关操作
     @staticmethod

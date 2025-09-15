@@ -26,6 +26,7 @@ class PermissionManager:
                     'patterns': True,
                     'products': True,
                     'categories': True,
+                    'pattern_categories': True,
                     'access_codes': True,
                     'access_logs': True,
                     'users': True,
